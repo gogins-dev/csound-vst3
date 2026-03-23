@@ -223,10 +223,12 @@ void CsoundVST3AudioProcessor::requestGlobalRestart()
     just_restarted = false;
     fade_out_pending = true;
     fade_in_pending = false;
+
+    // Throw away pending input and outgoing MIDI, but preserve any queued
+    // audio tail so the restart block can emit it with a fade-out.
     drain(midi_input_fifo);
     drain(audio_input_fifo);
     drain(midi_output_fifo);
-    drain(audio_output_fifo);
 }
 
 void CsoundVST3AudioProcessor::performGlobalRestart(double sample_rate,
@@ -580,17 +582,52 @@ void CsoundVST3AudioProcessor::processBlock (juce::AudioBuffer<float>& host_audi
 
     if (restart_requested == true)
     {
-        drain(midi_input_fifo);
-        drain(audio_input_fifo);
-        drain(midi_output_fifo);
+        host_audio_buffer.clear();
+        host_midi_buffer.clear();
+
+        // Emit any already-rendered tail from Csound, then fade that tail out.
+        bool wrote_tail = false;
+        const int host_audio_buffer_frames = host_audio_buffer.getNumSamples();
+
+        for (int host_audio_buffer_frame = 0; host_audio_buffer_frame < host_audio_buffer_frames; ++host_audio_buffer_frame)
+        {
+            for (int host_output_channel = 0; host_output_channel < host_output_channels; ++host_output_channel)
+            {
+                auto sample = audio_output_fifo.peek();
+                if (sample != nullptr)
+                {
+                    host_audio_buffer.setSample(host_output_channel,
+                                                host_audio_buffer_frame,
+                                                iodbfs * *sample);
+                    audio_output_fifo.pop();
+                    wrote_tail = true;
+                }
+                else
+                {
+                    // No more queued tail; leave the rest of the block at zero.
+                    break;
+                }
+            }
+        }
+
+        if ((fade_out_pending == true) && (wrote_tail == true))
+        {
+            apply_fade_out_to_buffer(host_audio_buffer, fade_samples);
+            fade_out_pending = false;
+        }
+        else
+        {
+            host_audio_buffer.clear();
+        }
+
+        // Now that the faded tail has been emitted, discard any remaining stale
+        // queued audio before restarting.
         drain(audio_output_fifo);
 
         performGlobalRestart(getSampleRate(),
                             getBlockSize(),
                             pending_score_time_seconds,
                             pending_score_time_samples);
-        host_audio_buffer.clear();
-        host_midi_buffer.clear();
         return;
     }
 
@@ -766,6 +803,11 @@ void CsoundVST3AudioProcessor::processBlock (juce::AudioBuffer<float>& host_audi
             }
         }
     }
+    if (fade_in_pending == true)
+    {
+        apply_fade_in_to_buffer(host_audio_buffer, fade_samples);
+        fade_in_pending = false;
+    }
 }
 
 //==============================================================================
@@ -826,9 +868,9 @@ void CsoundVST3AudioProcessor::stop()
     orchestra_ready = false;
     restart_requested = false;
     just_restarted = false;
+    fade_in_pending = false;
+    fade_out_pending = false;
     csound.Stop();
     csound.Cleanup();
     csound.Reset();
 }
-
-

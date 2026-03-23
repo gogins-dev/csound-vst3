@@ -140,7 +140,7 @@ private:
     bool just_restarted = false;
     bool fade_in_pending = false;
     bool fade_out_pending = false;
-    int fade_samples = 64;
+    int fade_samples = 256;
     double pending_score_time_seconds = 0.;
     int64_t pending_score_time_samples = 0;
 
