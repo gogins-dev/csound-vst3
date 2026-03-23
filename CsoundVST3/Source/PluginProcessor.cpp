@@ -221,6 +221,8 @@ void CsoundVST3AudioProcessor::requestGlobalRestart()
     restart_requested = true;
     orchestra_ready = false;
     just_restarted = false;
+    fade_out_pending = true;
+    fade_in_pending = false;
     drain(midi_input_fifo);
     drain(audio_input_fifo);
     drain(midi_output_fifo);
@@ -252,11 +254,15 @@ void CsoundVST3AudioProcessor::performGlobalRestart(double sample_rate,
     csound_block_begin = plugin_frame - csound_frame;
     csound_block_end = csound_block_begin + csound_frames;
     csound_frame_end = csound_block_end;
+
     pending_score_time_seconds = score_time_seconds;
     pending_score_time_samples = score_time_samples;
+
     restart_requested = false;
     orchestra_ready = (csoundIsPlaying == true);
     just_restarted = true;
+    fade_in_pending = true;
+    fade_out_pending = false;
 }
 
 /**
@@ -327,6 +333,53 @@ template<typename T> void drain(moodycamel::ReaderWriterQueue<T> &queue)
         
     }
 }
+
+static void apply_fade_out_to_buffer(juce::AudioBuffer<float>& buffer, int fade_samples)
+{
+    const int channels = buffer.getNumChannels();
+    const int frames = buffer.getNumSamples();
+    const int ramp = std::min(fade_samples, frames);
+
+    if (ramp <= 0)
+    {
+        return;
+    }
+
+    const int start = frames - ramp;
+
+    for (int ch = 0; ch < channels; ++ch)
+    {
+        auto *data = buffer.getWritePointer(ch);
+        for (int i = 0; i < ramp; ++i)
+        {
+            const float gain = 1.0f - (static_cast<float>(i + 1) / static_cast<float>(ramp));
+            data[start + i] *= gain;
+        }
+    }
+}
+
+static void apply_fade_in_to_buffer(juce::AudioBuffer<float>& buffer, int fade_samples)
+{
+    const int channels = buffer.getNumChannels();
+    const int frames = buffer.getNumSamples();
+    const int ramp = std::min(fade_samples, frames);
+
+    if (ramp <= 0)
+    {
+        return;
+    }
+
+    for (int ch = 0; ch < channels; ++ch)
+    {
+        auto *data = buffer.getWritePointer(ch);
+        for (int i = 0; i < ramp; ++i)
+        {
+            const float gain = static_cast<float>(i + 1) / static_cast<float>(ramp);
+            data[i] *= gain;
+        }
+    }
+}
+
 /**
  * Compiles the csd and starts Csound.
  */
