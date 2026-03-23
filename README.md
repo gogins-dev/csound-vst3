@@ -52,7 +52,7 @@ Copy the CsoundVST3.vst3 directory and its contents to your user VST3 plugins
 directory. For example, on macOS, that would normally end up as 
 ~/Library/Audio/Plug-Ins/VST3/CsoundVST3.vst3.
 
-To use the standalone version of CsoundVST3, copy CsoundvST3.app to your 
+To use the standalone version of CsoundVST3, copy CsoundVST3.app to your 
 computer's Applications folder.
 
 ## Usage
