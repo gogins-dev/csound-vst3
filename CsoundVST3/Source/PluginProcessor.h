@@ -137,6 +137,7 @@ private:
     bool host_was_playing = false;
     bool restart_requested = false;
     bool orchestra_ready = false;
+    bool just_restarted = false;
     double pending_score_time_seconds = 0.;
     int64_t pending_score_time_samples = 0;
 

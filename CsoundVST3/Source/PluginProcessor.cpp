@@ -220,6 +220,7 @@ void CsoundVST3AudioProcessor::requestGlobalRestart()
 {
     restart_requested = true;
     orchestra_ready = false;
+    just_restarted = false;
     drain(midi_input_fifo);
     drain(audio_input_fifo);
     drain(midi_output_fifo);
@@ -233,17 +234,13 @@ void CsoundVST3AudioProcessor::performGlobalRestart(double sample_rate,
 {
     suspendProcessing(false);
     prepareToPlay(sample_rate, samples_per_block);
-
     csound.SetScoreOffsetSeconds(score_time_seconds);
-
     host_frame = score_time_samples;
     host_prior_frame = score_time_samples;
     host_block_frame = score_time_samples;
     host_block_begin = score_time_samples;
     host_block_end = score_time_samples;
-
     plugin_frame = score_time_samples;
-
     if (csound_frames > 0)
     {
         csound_frame = plugin_frame % csound_frames;
@@ -252,16 +249,14 @@ void CsoundVST3AudioProcessor::performGlobalRestart(double sample_rate,
     {
         csound_frame = 0;
     }
-
     csound_block_begin = plugin_frame - csound_frame;
     csound_block_end = csound_block_begin + csound_frames;
     csound_frame_end = csound_block_end;
-
     pending_score_time_seconds = score_time_seconds;
     pending_score_time_samples = score_time_samples;
-
     restart_requested = false;
     orchestra_ready = (csoundIsPlaying == true);
+    just_restarted = true;
 }
 
 /**
@@ -532,10 +527,25 @@ void CsoundVST3AudioProcessor::processBlock (juce::AudioBuffer<float>& host_audi
 
     if (restart_requested == true)
     {
+        drain(midi_input_fifo);
+        drain(audio_input_fifo);
+        drain(midi_output_fifo);
+        drain(audio_output_fifo);
+
         performGlobalRestart(getSampleRate(),
                             getBlockSize(),
                             pending_score_time_seconds,
                             pending_score_time_samples);
+        host_audio_buffer.clear();
+        host_midi_buffer.clear();
+        return;
+    }
+
+    if (just_restarted == true)
+    {
+        just_restarted = false;
+        drain(midi_input_fifo);
+        drain(audio_input_fifo);
         host_audio_buffer.clear();
         host_midi_buffer.clear();
         return;
@@ -638,11 +648,13 @@ void CsoundVST3AudioProcessor::processBlock (juce::AudioBuffer<float>& host_audi
         {
             csound_block_begin = plugin_frame - (csound_frames - 1);
             csound_block_end = csound_block_begin + csound_frames;
+            csound_frame_end = csound_block_end;
             auto result = csound.PerformKsmps();
             if (result != 0)
             {
                 pending_score_time_seconds = host_block_begin / getSampleRate();
                 pending_score_time_samples = host_block_begin;
+                orchestra_ready = false;
                 requestGlobalRestart();
                 host_audio_buffer.clear();
                 host_midi_buffer.clear();
@@ -760,6 +772,7 @@ void CsoundVST3AudioProcessor::stop()
     csoundIsPlaying = false;
     orchestra_ready = false;
     restart_requested = false;
+    just_restarted = false;
     csound.Stop();
     csound.Cleanup();
     csound.Reset();
