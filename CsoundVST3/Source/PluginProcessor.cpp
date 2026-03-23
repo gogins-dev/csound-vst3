@@ -263,7 +263,7 @@ void CsoundVST3AudioProcessor::performGlobalRestart(double sample_rate,
     restart_requested = false;
     orchestra_ready = (csoundIsPlaying == true);
     just_restarted = true;
-    fade_in_pending = true;
+    fade_in_pending = false;
     fade_out_pending = false;
 }
 
@@ -634,10 +634,16 @@ void CsoundVST3AudioProcessor::processBlock (juce::AudioBuffer<float>& host_audi
     if (just_restarted == true)
     {
         just_restarted = false;
+
         drain(midi_input_fifo);
         drain(audio_input_fifo);
+
         host_audio_buffer.clear();
         host_midi_buffer.clear();
+
+        // Now enable fade-in for the NEXT block (not this one)
+        fade_in_pending = true;
+
         return;
     }
 
@@ -805,6 +811,10 @@ void CsoundVST3AudioProcessor::processBlock (juce::AudioBuffer<float>& host_audi
     }
     if (fade_in_pending == true)
     {
+        for (int ch = 0; ch < host_output_channels; ++ch)
+        {
+            host_audio_buffer.setSample(ch, 0, 0.0f);
+        }
         apply_fade_in_to_buffer(host_audio_buffer, fade_samples);
         fade_in_pending = false;
     }
