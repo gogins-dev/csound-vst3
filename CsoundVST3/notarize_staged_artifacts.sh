@@ -41,6 +41,19 @@ staple_bundle()
     fi
 }
 
+copy_if_present()
+{
+    local src="$1"
+    local dst_dir="$2"
+
+    if [[ -e "$src" ]]
+    then
+        mkdir -p "$dst_dir"
+        rm -rf "$dst_dir/$(basename "$src")"
+        cp -R "$src" "$dst_dir/"
+    fi
+}
+
 main()
 {
     require_command xcrun
@@ -60,6 +73,9 @@ main()
     local vst3_stage="$stage_dir/Library/Audio/Plug-Ins/VST3/CsoundVST3.vst3"
     local au_stage="$stage_dir/Library/Audio/Plug-Ins/Components/CsoundVST3.component"
     local app_stage="$stage_dir/Applications/CsoundVST3.app"
+    local user_vst3_dir="$HOME/Library/Audio/Plug-Ins/VST3"
+    local user_au_dir="$HOME/Library/Audio/Plug-Ins/Components"
+    local user_app_dir="$HOME/Applications"
 
     local vst3_submit="$submit_dir/Library/Audio/Plug-Ins/VST3/CsoundVST3.vst3"
     local au_submit="$submit_dir/Library/Audio/Plug-Ins/Components/CsoundVST3.component"
@@ -111,11 +127,20 @@ main()
     staple_bundle "$au_stage"
     staple_bundle "$app_stage"
 
+    log "installing stapled artifacts locally"
+    copy_if_present "$vst3_stage" "$user_vst3_dir"
+    copy_if_present "$au_stage" "$user_au_dir"
+    copy_if_present "$app_stage" "$user_app_dir"
+
     log "done"
     echo "notarized archive:"
     echo "  $archive_path"
-    echo "stapled artifacts remain in:"
+    echo "stapled artifacts staged in:"
     echo "  $stage_dir"
+    echo "stapled artifacts installed locally to:"
+    echo "  $user_vst3_dir"
+    echo "  $user_au_dir"
+    echo "  $user_app_dir"
 }
 
 main "$@"

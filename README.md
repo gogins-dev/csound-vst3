@@ -123,8 +123,14 @@ controllers in your DAW project.
 
 ### Version 1.1
 
-A bug that caused Csound to quit producing audio after a restart or looping back 
-in time has been fixed.
+A bug that caused Csound to quit producing audio after a restart or looping 
+back in time has been fixed.
+
+For macOS, the build system has been revamped to install, sign, and notarize 
+artifacts for me, on my computer. This would need to be customized for another 
+developer or computer. One could however not run the build scripts, and 
+instead just use CMake to configure and build, and then bypass the macOS 
+Gatekeeper.
 
 ### Version 1.0.3-beta
 
