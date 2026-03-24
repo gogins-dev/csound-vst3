@@ -13,9 +13,9 @@ This is the simplest plugin I could write that provides _all_ the
 functionality of Csound to digital audio workstations (DAWs) as a VST3 or 
 AudioUnit plugin. There is also a standalone app version.
     
-Note that Cabbage (https://github.com/rorywalsh/cabbage) provides a much more 
+NOTE: Cabbage (https://github.com/rorywalsh/cabbage) provides a much more 
 full-featured VST3 plugin version of Csound. _However, CsoundVST3 enables 
-editing .csd text directly within DAW projects._ In many cases, this can 
+editing .csd code directly within DAW projects._ In many cases, this can 
 greatly simplify and speed up the user's workflow.
 
 ## Introduction
@@ -24,14 +24,14 @@ CsoundVST3 enables the Csound audio programming language (https://csound.com/)
 to be used within digital audio workstations as a VST3 plugin instrument 
 and/or signal processing effect.
 
-CsoundVST3 has audio inputs, audio outputs, MIDI inputs, and MIDI outputs. 
-The plugin hosts one .csd file, which can be edited from the plugin's user 
-interface. The interface also displays Csound's runtime messages. Csound's 
-score time is synchronized with the DAW's playback time, which can loop. This 
-enables using Csound score events embedded in the .csd file to play in sync 
-with the DAW's playback head. And that, in turn, brings _all_ of the technical 
-resources of electroacoustic music, or computer music, or whatever you want 
-to call it, into digital audio workstations.
+CsoundVST3 provides audio inputs, audio outputs, MIDI inputs, and MIDI 
+outputs. The plugin hosts one .csd file, which can be edited from the plugin's 
+user interface. The interface also displays Csound's runtime messages. 
+Csound's score time is synchronized with the DAW's playback time, which can 
+loop. This enables using Csound score events embedded in the .csd file to play 
+in sync with the DAW's playback head. And that, in turn, brings _all_ of the 
+technical resources of electroacoustic music, or computer music, or whatever 
+you want to call it, into digital audio workstations.
 
 CsoundVST3 has _all_ the power of command-line Csound. CsoundVST3 can read and 
 write on the user's filesystem, load plugin opcodes, and execute system 
@@ -52,7 +52,7 @@ Copy the CsoundVST3.vst3 directory and its contents to your user VST3 plugins
 directory. For example, on macOS, that would normally end up as 
 ~/Library/Audio/Plug-Ins/VST3/CsoundVST3.vst3.
 
-To use the standalone version of CsoundVST3, copy CsoundVST3.app to your 
+To use the standalone version of CsoundVST3, copy CsoundvST3.app to your 
 computer's Applications folder.
 
 ## Usage
@@ -63,15 +63,19 @@ computer's Applications folder.
     can map MIDI channel message fields to your Csound instrument pfields, 
     and should open MIDI inputs and, if needed, MIDI outputs, for example:
     
-    -M0 -Q0 --midi-key=4 --midi-velocity=5 -m163 --daemon  
+    -MN -QN --midi-key=4 --midi-velocity=5 -m163   
     
-    Note that "-M" with a devoce number must used for MIDI input from the DAW, 
-    and that "-Q" with a device number must be used for MIDI output to the 
-    DAW. CsoundVST3 prints a list of available MIDI devices when it compiles 
-    the .csd.
+    Note that "-MN" must used for MIDI input from the DAW, and that "-QN" must 
+    be used for MIDI output to the DAW. For standalone use, the actual device 
+    number must be used in place of "N". CsoundVST3 prints a list of available 
+    MIDI devices when it compiles the .csd.
     
-    The "--daemon" option ensures that the Csound orchestra will run 
-    indefinitely within the DAW project.
+    NOTE: Csound recompiles its orchestra every time VST host loops back in 
+    time, so it may be necessary to allow time in DAW playback for the .csd to 
+    compile before the first note is played. Also, notes that overlap the loop 
+    points will stop or start with a click, so if looping is necessary for 
+    your music, you must ensure that all notes end before the end of the loop,
+    and start after the start of the loop.
 
     Your Csound instrument definitions may use mapped pfields and/or Csound's 
     MIDI input and output opcodes but, in any case, you must use a releasing 
@@ -117,9 +121,10 @@ controllers in your DAW project.
 
 ## Release Notes 
 
-### Version 1.1.0-beta
+### Version 1.1
 
-Changed the build system from the Projucer to CMake, improved the README.
+A bug that caused Csound to quit producing audio after a restart or looping back 
+in time has been fixed.
 
 ### Version 1.0.3-beta
 
@@ -136,7 +141,3 @@ Internal audio and MIDI queues are now lock-free for more stable performance.
 ### Version 1.0.0-beta
 
 This is the initial release.
-
-
-
-

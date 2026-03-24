@@ -68,13 +68,14 @@ juce_add_plugin(CsoundVST3
     PLUGIN_MANUFACTURER_CODE IrPr
     PLUGIN_CODE Csv3
     PRODUCT_NAME "CsoundVST3"
-    COPY_PLUGIN_AFTER_BUILD TRUE
+    COPY_PLUGIN_AFTER_BUILD FALSE
 )
 
 juce_add_binary_data(CsoundBinaryData
     SOURCES
         Resources/angel_concert.png
         Resources/angel_concert.icns
+        ../README.md
 )
 
 # Add source files
@@ -89,6 +90,22 @@ target_include_directories(CsoundVST3 PRIVATE
     /usr/include/harfbuzz/
     /usr/include/glib-2.0/glib
 )
+
+set(CSOUNDVST3_BUNDLE_TARGETS
+    CsoundVST3_Standalone
+    CsoundVST3_VST3
+    CsoundVST3_AU
+)
+
+foreach(target IN LISTS CSOUNDVST3_BUNDLE_TARGETS)
+    if(TARGET ${target})
+        target_sources(${target} PRIVATE ${ICNS_FILE})
+        set_target_properties(${target} PROPERTIES
+            MACOSX_BUNDLE TRUE
+            MACOSX_BUNDLE_ICON_FILE angel_concert.icns
+        )
+    endif()
+endforeach()
 
 # JUCE module dependencies
 target_link_libraries(CsoundVST3 PRIVATE 
