@@ -45,10 +45,14 @@
 #include "csound.hpp"
 #include <atomic>
 #include <condition_variable>
+#include <iomanip>
 #include <memory>
 #include <mutex>
 #include <queue>
+#include <sstream>
+#include <string>
 #include <thread>
+#include <vector>
 
 /**
  * A thread-safe queue, or first-in first-out (FIFO) queue, implemented using
@@ -70,7 +74,7 @@ public:
         lock.unlock();
         condition_variable_.notify_one();
     }
-    bool empty() const
+    bool empty()
     {
         std::unique_lock<std::mutex> lock(mutex_);
         return queue_.empty();
@@ -95,6 +99,17 @@ public:
         queue_.pop();
     }
 };
+
+inline std::string csound_threaded_format_score_event(char opcode, const MYFLT *pfields, long pfield_count)
+{
+    std::ostringstream stream;
+    stream << opcode;
+    stream << std::setprecision(17);
+    for (long i = 0; i < pfield_count; ++i) {
+        stream << ' ' << pfields[i];
+    }
+    return stream.str();
+}
 
 /**
  * Abstract base class for Csound events to be enqueued
@@ -124,8 +139,15 @@ struct CsoundScoreEvent : public CsoundEvent
             pfields.push_back(pfields_[i]);
         }
     }
-    virtual int operator ()(CSOUND *csound_) {
-        return csoundScoreEvent(csound_, opcode, pfields.data(), pfields.size());
+    virtual int operator ()(CSOUND *csound_)
+    {
+#if CSOUND_VERSION_MAJOR >= 7
+        const std::string text = csound_threaded_format_score_event(opcode, pfields.data(), static_cast<long>(pfields.size()));
+        csoundEventString(csound_, text.c_str(), 0);
+        return 0;
+#else
+        return csoundScoreEvent(csound_, opcode, pfields.data(), static_cast<long>(pfields.size()));
+#endif
     }
 };
 
@@ -140,8 +162,14 @@ struct CsoundTextEvent : public CsoundEvent
     {
         events = text;
     }
-    virtual int operator ()(CSOUND *csound_) {
-        return csoundReadScore(csound_, events.data());
+    virtual int operator ()(CSOUND *csound_)
+    {
+#if CSOUND_VERSION_MAJOR >= 7
+        csoundEventString(csound_, events.c_str(), 0);
+        return 0;
+#else
+        return csoundReadScore(csound_, events.c_str());
+#endif
     }
 };
 
@@ -163,6 +191,7 @@ protected:
     void (*kperiod_callback)(CSOUND *, void *);
     void *kperiod_callback_user_data;
     concurrent_queue<CsoundEvent *> input_queue;
+
     void ClearQueue()
     {
         CsoundEvent *event = 0;
@@ -170,22 +199,103 @@ protected:
             delete event;
         }
     }
+
+#if CSOUND_VERSION_MAJOR >= 7
+    int ReadScoreNow(const char *score)
+    {
+        csoundEventString(csound, score, 0);
+        return 0;
+    }
+
+    int ScoreEventNow(char opcode, const MYFLT *pfields, long pfield_count)
+    {
+        const std::string text = csound_threaded_format_score_event(opcode, pfields, pfield_count);
+        csoundEventString(csound, text.c_str(), 0);
+        return 0;
+    }
+#endif
+
 public:
     std::atomic<bool> keep_running;
-    CsoundThreaded() : Csound(), kperiod_callback(nullptr), kperiod_callback_user_data(nullptr), keep_running(false)  {};
-    CsoundThreaded(CSOUND *csound_) : Csound(csound_), kperiod_callback(nullptr), kperiod_callback_user_data(nullptr), keep_running(false) {};
-    CsoundThreaded(void *host_data) : Csound(host_data), kperiod_callback(nullptr), kperiod_callback_user_data(nullptr), keep_running(false) {};
+
+    CsoundThreaded()
+        : Csound()
+        , kperiod_callback(nullptr)
+        , kperiod_callback_user_data(nullptr)
+        , keep_running(false)
+    {
+    }
+
+    CsoundThreaded(CSOUND *csound_)
+        : Csound(csound_)
+        , kperiod_callback(nullptr)
+        , kperiod_callback_user_data(nullptr)
+        , keep_running(false)
+    {
+    }
+
+    CsoundThreaded(void *host_data)
+        : Csound(host_data)
+        , kperiod_callback(nullptr)
+        , kperiod_callback_user_data(nullptr)
+        , keep_running(false)
+    {
+    }
+
     virtual ~CsoundThreaded()
     {
         Stop();
         Join();
         ClearQueue();
     }
+
+#if CSOUND_VERSION_MAJOR >= 7
+    /**
+     * Compatibility wrappers for methods that existed in the Csound 6 C++
+     * wrapper but were removed from the Csound 7 C++ wrapper.
+     */
+    virtual int32_t CompileCsd(const char *csd_filename)
+    {
+        return csoundCompileCSD(csound, csd_filename, 0, 0);
+    }
+
+    virtual int32_t CompileCsdText(const char *csd_text)
+    {
+        return csoundCompileCSD(csound, csd_text, 1, 0);
+    }
+
+    virtual int32_t GetNchnls()
+    {
+        return GetChannels(0);
+    }
+
+    virtual int32_t GetNchnlsInput()
+    {
+        return GetChannels(1);
+    }
+
+    virtual int32_t Cleanup()
+    {
+        return 0;
+    }
+
+    virtual int32_t ReadScoreImmediate(const char *score)
+    {
+        return ReadScoreNow(score);
+    }
+
+    virtual int32_t ScoreEventImmediate(char opcode, const MYFLT *pfields, long pfield_count)
+    {
+        return ScoreEventNow(opcode, pfields, pfield_count);
+    }
+#endif
+
     virtual void SetKperiodCallback(void (*kperiod_callback_)(CSOUND *, void *), void *kperiod_callback_user_data_)
     {
         kperiod_callback = kperiod_callback_;
         kperiod_callback_user_data = kperiod_callback_user_data_;
     }
+
     virtual int PerformRoutine()
     {
         Message("Began CsoundThreaded::PerformRoutine()...\n");
@@ -215,6 +325,7 @@ public:
         Message("Ended CsoundThreaded::PerformRoutine() with %d.\n", result);
         return result;
     }
+
     virtual int PerformAndResetRoutine()
     {
         Message("Began CsoundThreaded::PerformAndResetRoutine()...\n");
@@ -248,6 +359,7 @@ public:
         Message("Ended CsoundThreaded::PerformAndResetRoutine() with %d.\n", result);
         return result;
     }
+
     /**
      * Overrides Csound::Perform to run in a separate thread of execution.
      * The granularity of time is one kperiod. If a kperiod callback has been
@@ -259,6 +371,7 @@ public:
         performance_thread = std::thread(&CsoundThreaded::PerformRoutine, this);
         return 0;
     }
+
     /**
      * Like Perform, but calls Cleanup() and Reset() at the conclusion of the
      * performance, so that this is done in the performance thread.
@@ -268,6 +381,7 @@ public:
         performance_thread = std::thread(&CsoundThreaded::PerformAndResetRoutine, this);
         return 0;
     }
+
     /**
      * Enqueues a low-level score event with raw pfields for dispatch from
      * the performance thread routine.
@@ -279,6 +393,7 @@ public:
         input_queue.push(event);
         return result;
     }
+
     /**
      * Enqueues a textual score event or events for dispatch from the
      * performance thread routine.
@@ -288,6 +403,7 @@ public:
         CsoundTextEvent *event = new CsoundTextEvent(message);
         input_queue.push(event);
     }
+
     /**
      * Enqueues a textual score event, score fragment, or entire score for
      * dispatch from the performance thread routine.
@@ -299,6 +415,7 @@ public:
         input_queue.push(event);
         return result;
     }
+
     /**
      * Signals the performance thread routine to stop and return.
      */
@@ -306,9 +423,14 @@ public:
     {
         Message("CsoundThreaded::Stop()...\n");
         keep_running = false;
+#if CSOUND_VERSION_MAJOR < 7
         Csound::Stop();
+#else
+        SetScorePending(0);
+#endif
         Message("CsoundThreaded::Stop().\n");
     }
+
     /**
      * Causes the calling thread to wait for the end of the performance
      * thread routine.
@@ -321,6 +443,7 @@ public:
         }
         Message("CsoundThreaded::Join().\n");
     }
+
     /**
      * Returns whether or not the performance thread routine is running.
      */
@@ -329,4 +452,3 @@ public:
        return keep_running;
     }
 };
-
