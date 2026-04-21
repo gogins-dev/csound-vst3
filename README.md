@@ -117,6 +117,11 @@ controllers in your DAW project.
 
 ## Release Notes 
 
+### Version 2.0.0-beta
+
+Ported to Csound version 7. Csound version 6 will no longer be supported in 
+the main branch of this repository.
+
 ### Version 1.1.0-beta
 
 Changed the build system from the Projucer to CMake, improved the README.

@@ -1,3 +1,5 @@
-#/bin/bash
+#!/bin/bash
+set -euo pipefail
+
 echo "Installing for developer to ~...."
-cmake --install build --prefix ~
+cmake --install build --config Release --prefix ~
