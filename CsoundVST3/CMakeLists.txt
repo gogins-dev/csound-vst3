@@ -1,36 +1,65 @@
 cmake_minimum_required(VERSION 3.15)
 
 project(CsoundVST3 VERSION 2.0.0)
-set(CSOUND_SIGN_IDENTITY "Apple Development: Michael Gogins (JC94KD4B5T)" CACHE STRING "Code signing identity for macOS")
+set(CSOUND_SIGN_IDENTITY "Developer ID Application: Michael Gogins (9UX792D3V9)" CACHE STRING "Code signing identity for macOS; leave empty to skip signing")
 
-# Require C++20
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Set JUCE root
 set(JUCE_ROOT "${CMAKE_SOURCE_DIR}/include/JUCE")
 add_subdirectory(${JUCE_ROOT})
+
+#
+# Find Csound version.
+#
+include("$ENV{HOME}/cmake/FindCsoundHomeFirst.cmake")
 
 # ------------------------------------------------------------------------------
 # Find Csound
 # ------------------------------------------------------------------------------
 
 if(APPLE)
-    include("$ENV{HOME}/cmake/FindCsoundHomeFirst.cmake")
+    find_path(CSOUND_INCLUDE_DIR
+        NAMES csound.hpp csound.h
+        PATHS
+            /Library/Frameworks/CsoundLib64.framework/Headers
+            /usr/local/include
+            /opt/homebrew/include
+        NO_DEFAULT_PATH
+    )
 
-    if(NOT CSOUND_FOUND)
-        message(FATAL_ERROR "Csound was not found on macOS.")
+    find_library(CSOUND_LIBRARY
+        NAMES CsoundLib64 csound64 csound
+        PATHS
+            /Library/Frameworks
+            /usr/local/lib
+            /opt/homebrew/lib
+        PATH_SUFFIXES Frameworks
+        NO_DEFAULT_PATH
+    )
+
+    if(NOT CSOUND_INCLUDE_DIR OR NOT CSOUND_LIBRARY)
+        message(FATAL_ERROR "Csound was not found in system locations on macOS.")
     endif()
+
+    set(CSOUND_INCLUDE_DIRS "${CSOUND_INCLUDE_DIR}")
+    set(CSOUND_LIBRARIES "${CSOUND_LIBRARY}")
+
+    if(CSOUND_LIBRARY MATCHES "\\.framework")
+        get_filename_component(CSOUND_FRAMEWORK_DIR "${CSOUND_LIBRARY}" DIRECTORY)
+    else()
+        get_filename_component(CSOUND_FRAMEWORK_DIR "${CSOUND_LIBRARY}" DIRECTORY)
+    endif()
+
+    set(CSOUND_EXECUTABLE "/usr/local/bin/csound" CACHE FILEPATH "Csound executable")
 
     message(STATUS "CSOUND_EXECUTABLE:   ${CSOUND_EXECUTABLE}")
     message(STATUS "CSOUND_LIBRARY:      ${CSOUND_LIBRARY}")
     message(STATUS "CSOUND_INCLUDE_DIRS: ${CSOUND_INCLUDE_DIRS}")
     message(STATUS "CSOUND_FRAMEWORK_DIR:${CSOUND_FRAMEWORK_DIR}")
-    message(STATUS "CSOUND_VERSION:      ${CSOUND_VERSION}")
 
 else()
-    # Allow the user to specify a custom root path for Csound
     set(CSOUND_ROOT "" CACHE PATH "Root directory of the Csound installation")
 
     if(WIN32)
@@ -136,6 +165,8 @@ target_compile_definitions(CsoundVST3 PRIVATE
     USE_DOUBLE
     CSOUND_VERSION_MAJOR=${CSOUND_VERSION_MAJOR}
     CSOUND_VERSION_MINOR=${CSOUND_VERSION_MINOR}
+    CSOUND_AC_CSOUND_VERSION_MAJOR=${CSOUND_VERSION_MAJOR}
+    CSOUND_AC_CSOUND_VERSION_MINOR=${CSOUND_VERSION_MINOR}
 )
 
 set(resources
@@ -181,7 +212,7 @@ if(APPLE)
     set_source_files_properties(${ICNS_FILE} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
 
     if(CSOUND_FRAMEWORK_DIR)
-        get_filename_component(CSOUND_FRAMEWORK_PARENT "${CSOUND_FRAMEWORK_DIR}" DIRECTORY)
+        set(CSOUND_FRAMEWORK_PARENT "/Library/Frameworks")
     else()
         get_filename_component(CSOUND_FRAMEWORK_PARENT "${CSOUND_LIBRARY}" DIRECTORY)
     endif()
@@ -191,8 +222,8 @@ if(APPLE)
             target_include_directories(${target} PRIVATE ${CSOUND_INCLUDE_DIRS})
             target_link_libraries(${target} PRIVATE "${CSOUND_LIBRARIES}")
             target_link_options(${target} PRIVATE
-                "-F${CSOUND_FRAMEWORK_PARENT}"
-                "-Wl,-rpath,${CSOUND_FRAMEWORK_PARENT}"
+                "-F/Library/Frameworks"
+                "-Wl,-rpath,/Library/Frameworks"
             )
             target_sources(${target} PRIVATE ${ICNS_FILE})
             set_target_properties(${target} PROPERTIES
@@ -223,37 +254,59 @@ endif()
 
 if(APPLE)
     install(TARGETS CsoundVST3_VST3
-        LIBRARY DESTINATION Library/Audio/Plug-Ins/VST3
+        LIBRARY DESTINATION /Library/Audio/Plug-Ins/VST3
+        COMPONENT CsoundVST3_Runtime
     )
 
     install(TARGETS CsoundVST3_AU
-        LIBRARY DESTINATION Library/Audio/Plug-Ins/Components
+        LIBRARY DESTINATION /Library/Audio/Plug-Ins/Components
+        COMPONENT CsoundVST3_Runtime
     )
 
     install(TARGETS CsoundVST3_Standalone
-        BUNDLE DESTINATION Applications
+        BUNDLE DESTINATION /Applications
+        COMPONENT CsoundVST3_Runtime
     )
 
-    install(CODE "
-        message(STATUS \"Signing VST3 bundle...\")
-        execute_process(COMMAND codesign --deep --force --options runtime
-            --sign \"${CSOUND_SIGN_IDENTITY}\"
-            \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/Library/Audio/Plug-Ins/VST3/CsoundVST3.vst3\")
+    if(CSOUND_SIGN_IDENTITY)
+        install(CODE "
+            message(STATUS \"Signing VST3 bundle...\")
+            execute_process(
+                COMMAND codesign --deep --force --sign \"${CSOUND_SIGN_IDENTITY}\"
+                        \"/Library/Audio/Plug-Ins/VST3/CsoundVST3.vst3\"
+                RESULT_VARIABLE vst3_sign_result
+            )
+            if(NOT vst3_sign_result EQUAL 0)
+                message(FATAL_ERROR \"codesign failed for VST3 bundle\")
+            endif()
 
-        message(STATUS \"Signing AU component...\")
-        execute_process(COMMAND codesign --deep --force --options runtime
-            --sign \"${CSOUND_SIGN_IDENTITY}\"
-            \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/Library/Audio/Plug-Ins/Components/CsoundVST3.component\")
+            message(STATUS \"Signing AU component...\")
+            execute_process(
+                COMMAND codesign --deep --force --sign \"${CSOUND_SIGN_IDENTITY}\"
+                        \"/Library/Audio/Plug-Ins/Components/CsoundVST3.component\"
+                RESULT_VARIABLE au_sign_result
+            )
+            if(NOT au_sign_result EQUAL 0)
+                message(FATAL_ERROR \"codesign failed for AU component\")
+            endif()
 
-        message(STATUS \"Signing Standalone app...\")
-        execute_process(COMMAND codesign --deep --force --options runtime
-            --sign \"${CSOUND_SIGN_IDENTITY}\"
-            \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/Applications/CsoundVST3.app\")
-    ")
+            message(STATUS \"Signing Standalone app...\")
+            execute_process(
+                COMMAND codesign --deep --force --sign \"${CSOUND_SIGN_IDENTITY}\"
+                        \"/Applications/CsoundVST3.app\"
+                RESULT_VARIABLE app_sign_result
+            )
+            if(NOT app_sign_result EQUAL 0)
+                message(FATAL_ERROR \"codesign failed for Standalone app\")
+            endif()
+        " COMPONENT CsoundVST3_Signing)
+    endif()
+
 elseif(WIN32 OR UNIX)
     install(TARGETS CsoundVST3
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib
+        COMPONENT CsoundVST3_Runtime
     )
 endif()
