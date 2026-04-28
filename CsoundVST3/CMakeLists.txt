@@ -15,6 +15,11 @@ add_subdirectory(${JUCE_ROOT})
 #
 include("$ENV{HOME}/cmake/FindCsoundHomeFirst.cmake")
 
+file(DOWNLOAD
+    "https://raw.githubusercontent.com/gogins/csound-ac/master/CsoundAC/csound_threaded.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../CsoundVST3/Source/csound_threaded.hpp"
+)
+
 # ------------------------------------------------------------------------------
 # Find Csound
 # ------------------------------------------------------------------------------

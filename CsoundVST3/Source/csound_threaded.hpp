@@ -191,6 +191,9 @@ protected:
     void (*kperiod_callback)(CSOUND *, void *);
     void *kperiod_callback_user_data;
     concurrent_queue<CsoundEvent *> input_queue;
+    std::string output_type;
+    std::string output_format;      
+    std::string output_name;
 
     void ClearQueue()
     {
@@ -249,7 +252,7 @@ public:
         ClearQueue();
     }
 
-#if CSOUND_VERSION_MAJOR >= 7
+#if defined(CSOUND_VERSION_MAJOR) && CSOUND_VERSION_MAJOR >= 7
     /**
      * Compatibility wrappers for methods that existed in the Csound 6 C++
      * wrapper but were removed from the Csound 7 C++ wrapper.
@@ -288,7 +291,166 @@ public:
     {
         return ScoreEventNow(opcode, pfields, pfield_count);
     }
+
+
+    virtual int SetInput(const char *input)
+    {
+        std::string option = "--input=";
+        option += input;
+        return SetOption(option.c_str());
+    }
+
 #endif
+
+
+
+    /**
+     * Compatibility wrappers for Csound 6 C++ wrapper methods that are
+     * absent from the Csound 7 C++ wrapper. Keep these in CsoundThreaded
+     * so embind and other clients can call one stable C++ API.
+     */
+    virtual void SetHostImplementedAudioIO(int state)
+    {
+#if defined(CSOUND_VERSION_MAJOR) && CSOUND_VERSION_MAJOR >= 7
+        // Csound 7 removed csoundSetHostImplementedAudioIO(CSOUND *, int, int)
+        // and replaced it with one-way host audio I/O selection. There is no
+        // C API call to disable host audio I/O again, so state == 0 is a no-op.
+        if (state != 0)
+        {
+            csoundSetHostAudioIO(csound);
+        }
+#else
+        Csound::SetHostImplementedAudioIO(state);
+#endif
+    }
+
+    virtual void SetHostImplementedMIDIIO(int state)
+    {
+#if defined(CSOUND_VERSION_MAJOR) && CSOUND_VERSION_MAJOR >= 7
+        // Csound 7 removed csoundSetHostImplementedMIDIIO(CSOUND *, int)
+        // and replaced it with one-way host MIDI I/O selection. There is no
+        // C API call to disable host MIDI I/O again, so state == 0 is a no-op.
+        if (state != 0)
+        {
+            csoundSetHostMIDIIO(csound);
+        }
+#else
+        Csound::SetHostImplementedMIDIIO(state);
+#endif
+    }
+
+    virtual void SetExternalMidiInOpenCallback(int (*callback)(CSOUND *, void **, const char *))
+    {
+#if defined(CSOUND_VERSION_MAJOR) && CSOUND_VERSION_MAJOR >= 7
+        csoundSetExternalMidiInOpenCallback(csound, callback);
+#else
+        Csound::SetExternalMidiInOpenCallback(callback);
+#endif
+    }
+
+    virtual void SetExternalMidiReadCallback(int (*callback)(CSOUND *, void *, unsigned char *, int))
+    {
+#if defined(CSOUND_VERSION_MAJOR) && CSOUND_VERSION_MAJOR >= 7
+        csoundSetExternalMidiReadCallback(csound, callback);
+#else
+        Csound::SetExternalMidiReadCallback(callback);
+#endif
+    }
+
+    virtual void SetExternalMidiInCloseCallback(int (*callback)(CSOUND *, void *))
+    {
+#if defined(CSOUND_VERSION_MAJOR) && CSOUND_VERSION_MAJOR >= 7
+        csoundSetExternalMidiInCloseCallback(csound, callback);
+#else
+        Csound::SetExternalMidiInCloseCallback(callback);
+#endif
+    }
+
+    virtual MYFLT TableGet(int table, int index)
+    {
+#if defined(CSOUND_VERSION_MAJOR) && CSOUND_VERSION_MAJOR >= 7
+        // Csound 7 removed csoundTableGet(). Use csoundGetTable() and
+        // index directly into the returned table memory.
+        MYFLT *table_data = nullptr;
+        int table_length = csoundGetTable(csound, &table_data, table);
+        if (table_data == nullptr || index < 0 || index >= table_length)
+        {
+            return static_cast<MYFLT>(0);
+        }
+        return table_data[index];
+#else
+        return Csound::TableGet(table, index);
+#endif
+    }
+
+    virtual void TableSet(int table, int index, MYFLT value)
+    {
+#if defined(CSOUND_VERSION_MAJOR) && CSOUND_VERSION_MAJOR >= 7
+        // Csound 7 removed csoundTableSet(). Use csoundGetTable() and
+        // write directly into the returned table memory.
+        MYFLT *table_data = nullptr;
+        int table_length = csoundGetTable(csound, &table_data, table);
+        if (table_data == nullptr || index < 0 || index >= table_length)
+        {
+            return;
+        }
+        table_data[index] = value;
+#else
+        Csound::TableSet(table, index, value);
+#endif
+    }
+
+    virtual int SetOutput(const char *name, const char *type, const char *format)
+    {
+#if defined(CSOUND_VERSION_MAJOR) && CSOUND_VERSION_MAJOR  >= 7
+        int result = 0;
+        output_name = name;
+        output_type = type;
+        output_format = format;
+        if (name != nullptr && name[0] != '\0')
+        {
+            std::string option = "--output=";
+            option += name;
+            result = SetOption(option.c_str());
+            if (result != 0)
+            {
+                return result;
+            }
+        }
+        if ((type != nullptr && type[0] != '\0') ||
+            (format != nullptr && format[0] != '\0'))
+        {
+            std::string option = "--format=";
+
+            if (type != nullptr && type[0] != '\0' &&
+                format != nullptr && format[0] != '\0')
+            {
+                option += type;
+                option += ":";
+                option += format;
+            }
+            else if (type != nullptr && type[0] != '\0')
+            {
+                option += type;
+            }
+            else
+            {
+                option += format;
+            }
+
+            result = SetOption(option.c_str());
+            if (result != 0)
+            {
+                return result;
+            }
+        }
+        std::fprintf(stderr, "CsoundThreaded::SetOutput: name:  %s type: %s format: %s...\n", name, type, format);
+        return 0;
+#else
+        csoundSetOutput(csound, name, type, format);
+        return 0;
+#endif
+    }
 
     virtual void SetKperiodCallback(void (*kperiod_callback_)(CSOUND *, void *), void *kperiod_callback_user_data_)
     {
