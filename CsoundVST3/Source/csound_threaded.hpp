@@ -44,6 +44,10 @@
 #endif
 #include "csound.hpp"
 #include <atomic>
+#include <cstdarg>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
 #include <condition_variable>
 #include <iomanip>
 #include <memory>
@@ -251,6 +255,172 @@ public:
         Join();
         ClearQueue();
     }
+
+
+#if defined(CSOUND_VERSION_MAJOR) && CSOUND_VERSION_MAJOR < 7
+    /**
+     * Compatibility wrappers for methods that exist in the Csound 7 C++
+     * wrapper but may be absent from the Csound 6 C++ wrapper. These are
+     * intentionally thin wrappers over the Csound 6 C API or over older
+     * Csound 6 C++ method names, so Csound 7 clients can use CsoundThreaded
+     * when csound-ac is built against Csound 6.
+     */
+    virtual int32_t LoadPlugins(const char *dir)
+    {
+        return csoundLoadPlugins(csound, dir);
+    }
+
+    virtual int32_t CompileOrc(const char *str, int32_t async = 0)
+    {
+        (void) async;
+        return Csound::CompileOrc(str);
+    }
+
+    virtual int32_t CompileCSD(const char *csd, int32_t mode, int32_t async = 0)
+    {
+        (void) async;
+        if (mode == 0)
+        {
+            return CompileCsd(csd);
+        }
+        return CompileCsdText(csd);
+    }
+
+    virtual int32_t GetChannels(int32_t is_input = 0)
+    {
+        if (is_input != 0)
+        {
+            return GetNchnlsInput();
+        }
+        return GetNchnls();
+    }
+
+    virtual void SetHostAudioIO()
+    {
+        SetHostImplementedAudioIO(1);
+    }
+
+    virtual void SetHostMIDIIO()
+    {
+        SetHostImplementedMIDIIO(1);
+    }
+
+    virtual void Event(int32_t type, MYFLT *pfields, int32_t num_fields, int32_t async = 0)
+    {
+        if (async != 0)
+        {
+            csoundEvent(csound, type, pfields, num_fields, async);
+            return;
+        }
+        ScoreEvent(static_cast<char>(type), pfields, static_cast<long>(num_fields));
+    }
+
+    virtual void EventString(const char *s, int32_t async = 0)
+    {
+        if (async != 0)
+        {
+            csoundEventString(csound, s, async);
+            return;
+        }
+        InputMessage(s);
+    }
+
+    virtual int32_t GetInstrNumber(const char *name)
+    {
+        return csoundGetInstrNumber(csound, name);
+    }
+
+    virtual void SetExternalMidiOutOpenCallback(int32_t (*callback)(CSOUND *, void **, const char *))
+    {
+        csoundSetExternalMidiOutOpenCallback(csound, callback);
+    }
+
+    virtual void SetExternalMidiWriteCallback(int32_t (*callback)(CSOUND *, void *, const unsigned char *, int))
+    {
+        csoundSetExternalMidiWriteCallback(csound, callback);
+    }
+
+    virtual void SetExternalMidiOutCloseCallback(int32_t (*callback)(CSOUND *, void *))
+    {
+        csoundSetExternalMidiOutCloseCallback(csound, callback);
+    }
+
+    virtual void SetExternalMidiErrorStringCallback(const char *(*callback)(int))
+    {
+        csoundSetExternalMidiErrorStringCallback(csound, callback);
+    }
+
+    virtual int32_t TableLength(int32_t table)
+    {
+        return csoundTableLength(csound, table);
+    }
+
+    virtual int32_t GetTable(MYFLT **table_ptr, int32_t table_num)
+    {
+        return csoundGetTable(csound, table_ptr, table_num);
+    }
+
+    virtual int32_t GetTableArgs(MYFLT **args_ptr, int32_t table_num)
+    {
+        return csoundGetTableArgs(csound, args_ptr, table_num);
+    }
+
+    virtual void TableCopyIn(int32_t table, const MYFLT *ptable, int32_t async)
+    {
+        csoundTableCopyIn(csound, table, ptable, async);
+    }
+
+    virtual void TableCopyOut(int32_t table, MYFLT *ptable, int32_t async)
+    {
+        csoundTableCopyOut(csound, table, ptable, async);
+    }
+
+    virtual void SetControlChannel(const char *name, double value)
+    {
+        SetChannel(name, value);
+    }
+
+    virtual void SetAudioChannel(const char *name, MYFLT *samples)
+    {
+        SetChannel(name, samples);
+    }
+
+    virtual void SetStringChannel(const char *name, const char *string)
+    {
+        SetChannel(name, string);
+    }
+
+    virtual MYFLT GetControlChannel(const char *name, int32_t *err = NULL)
+    {
+        return GetChannel(name, err);
+    }
+
+    virtual void GetStringChannel(const char *name, char *string)
+    {
+        csoundGetStringChannel(csound, name, string);
+    }
+
+    virtual void GetAudioChannel(const char *name, MYFLT *samples)
+    {
+        csoundGetAudioChannel(csound, name, samples);
+    }
+
+    virtual ARRAYDAT *InitArrayChannel(CSOUND *csound_, const char *name, const char *type, int32_t dimensions, const int32_t *sizes)
+    {
+        return csoundInitArrayChannel(csound_, name, type, dimensions, sizes);
+    }
+
+    virtual PVSDAT *InitPvsChannel(const char *name, int32_t size, int32_t overlap, int32_t winsize, int32_t wintype, int32_t format)
+    {
+        return csoundInitPvsChannel(csound, name, size, overlap, winsize, wintype, format);
+    }
+
+    virtual MYFLT SystemSr(MYFLT value)
+    {
+        return csoundSystemSr(csound, value);
+    }
+
+#endif
 
 #if defined(CSOUND_VERSION_MAJOR) && CSOUND_VERSION_MAJOR >= 7
     /**
