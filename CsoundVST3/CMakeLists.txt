@@ -56,16 +56,26 @@ message(STATUS "Refreshing shared files from csound-ac repository head...")
 
 file(MAKE_DIRECTORY "${CSOUND_VST3_SOURCE_DIR}/cmake")
 
+set(csound_ac_refresh_dir "${CMAKE_BINARY_DIR}/csound-ac-refresh")
+file(MAKE_DIRECTORY "${csound_ac_refresh_dir}")
+file(MAKE_DIRECTORY "${CSOUND_VST3_SOURCE_DIR}/cmake")
+
 file(DOWNLOAD
     "https://raw.githubusercontent.com/gogins-dev/csound-ac/refs/heads/master/cmake/FindCsoundHomeFirst.cmake"
-    "${CSOUND_VST3_SOURCE_DIR}/cmake/FindCsoundHomeFirst.cmake"
+    "${csound_ac_refresh_dir}/FindCsoundHomeFirst.cmake"
     STATUS find_csound_download_status
     SHOW_PROGRESS
 )
 
 list(GET find_csound_download_status 0 find_csound_download_code)
 
-if(NOT find_csound_download_code EQUAL 0)
+if(find_csound_download_code EQUAL 0)
+    execute_process(
+        COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+            "${csound_ac_refresh_dir}/FindCsoundHomeFirst.cmake"
+            "${CSOUND_VST3_SOURCE_DIR}/cmake/FindCsoundHomeFirst.cmake"
+    )
+else()
     list(GET find_csound_download_status 1 find_csound_download_message)
     message(WARNING
         "Failed to refresh FindCsoundHomeFirst.cmake from csound-ac head: "
@@ -75,14 +85,20 @@ endif()
 
 file(DOWNLOAD
     "https://raw.githubusercontent.com/gogins-dev/csound-ac/refs/heads/master/CsoundAC/csound_threaded.hpp"
-    "${CSOUND_VST3_SOURCE_DIR}/Source/csound_threaded.hpp"
+    "${csound_ac_refresh_dir}/csound_threaded.hpp"
     STATUS csound_threaded_download_status
     SHOW_PROGRESS
 )
 
 list(GET csound_threaded_download_status 0 csound_threaded_download_code)
 
-if(NOT csound_threaded_download_code EQUAL 0)
+if(csound_threaded_download_code EQUAL 0)
+    execute_process(
+        COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+            "${csound_ac_refresh_dir}/csound_threaded.hpp"
+            "${CSOUND_VST3_SOURCE_DIR}/Source/csound_threaded.hpp"
+    )
+else()
     list(GET csound_threaded_download_status 1 csound_threaded_download_message)
     message(WARNING
         "Failed to refresh csound_threaded.hpp from csound-ac head: "
@@ -126,7 +142,9 @@ if(NOT EXISTS "${JUCE_ROOT}/CMakeLists.txt")
     endif()
 endif()
 
-add_subdirectory("${JUCE_ROOT}" "${CMAKE_BINARY_DIR}/JUCE")
+if(NOT TARGET juce::juce_core)
+    add_subdirectory("${JUCE_ROOT}" "${CMAKE_BINARY_DIR}/JUCE")
+endif()
 
 juce_add_plugin(CsoundVST3
     COMPANY_NAME "Irreducible Productions"
@@ -352,6 +370,7 @@ if(APPLE)
         VERBATIM
         COMMENT "Notarizing macOS dist archive when enabled"
     )
+
 else()
     add_custom_target(sign_dist
         DEPENDS stage_dist
