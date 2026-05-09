@@ -1,196 +1,315 @@
-name: Build and release CsoundVST3
+name: Build and Release
 
 on:
   push:
-    branches: [ master, main ]
-    tags: [ 'v*' ]
+    branches:
+      - main
+      - master
+    tags:
+      - "v*"
   pull_request:
-    branches: [ master, main ]
   workflow_dispatch:
 
 permissions:
   contents: write
 
+env:
+  BUILD_TYPE: RelWithDebInfo
+  CSOUND_VERSION_REF: develop
+  JUCE_VERSION_REF: 8.0.8
+  CSOUND_AC_ENABLE_CODESIGN: ${{ startsWith(github.ref, 'refs/tags/v') && 'ON' || 'OFF' }}
+  CSOUND_AC_ENABLE_NOTARIZATION: ${{ startsWith(github.ref, 'refs/tags/v') && 'ON' || 'OFF' }}
+
 jobs:
   build:
-    name: ${{ matrix.os_name }}
-    runs-on: ${{ matrix.runner }}
+    name: ${{ matrix.platform.name }}
+    runs-on: ${{ matrix.platform.os }}
+
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os_name: macos
-            runner: macos-latest
+        platform:
+          - name: macOS
+            os: macos-14
+            platform_name: macos
             build_dir: build-macos
-            archive_glob: build-macos/*.zip
-          - os_name: linux
-            runner: ubuntu-latest
+            csound_install: /tmp/csound-install
+            archive_glob: build-macos/csound-vst3-*-darwin.zip
+          - name: Linux
+            os: ubuntu-24.04
+            platform_name: linux
             build_dir: build-linux
-            archive_glob: build-linux/*.zip
-          - os_name: windows
-            runner: windows-latest
+            csound_install: /tmp/csound-install
+            archive_glob: build-linux/csound-vst3-*-linux.zip
+          - name: Windows
+            os: windows-2022
+            platform_name: windows
             build_dir: build-windows
-            archive_glob: build-windows/*.zip
+            csound_install: C:/csound-install
+            archive_glob: build-windows/csound-vst3-*-windows.zip
 
     steps:
-      - name: Check out repository
+      - name: Check out csound-vst3
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Install dependencies - macOS
-        if: matrix.os_name == 'macos'
+      - name: Install macOS dependencies
+        if: runner.os == 'macOS'
         shell: bash
         run: |
           brew update
           brew install \
-            cmake \
-            ninja \
+            bison \
             ccache \
+            cmake \
             curl \
+            eigen \
+            flex \
+            gettext \
             git \
-            pkg-config \
-            csound
+            liblo \
+            libsndfile \
+            ninja \
+            portaudio \
+            python \
+            swig
 
-      - name: Install dependencies - Linux
-        if: matrix.os_name == 'linux'
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
         shell: bash
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            build-essential \
-            cmake \
-            ninja-build \
+            bison \
             ccache \
-            git \
+            cmake \
             curl \
-            pkg-config \
-            zip \
-            csound \
-            libcsound64-dev \
+            flex \
+            g++ \
+            gcc \
+            git \
             libasound2-dev \
-            libjack-jackd2-dev \
-            ladspa-sdk \
             libcurl4-openssl-dev \
+            libffi-dev \
             libfreetype6-dev \
+            libgl1-mesa-dev \
+            libgtk-3-dev \
+            libjack-jackd2-dev \
+            liblo-dev \
+            libpulse-dev \
+            libsndfile1-dev \
+            libwebkit2gtk-4.1-dev \
             libx11-dev \
-            libxcomposite-dev \
             libxcursor-dev \
             libxext-dev \
             libxinerama-dev \
             libxrandr-dev \
-            libxrender-dev \
-            libglu1-mesa-dev \
-            mesa-common-dev \
-            libgl1-mesa-dev \
-            libgtk-3-dev \
-            libwebkit2gtk-4.1-dev || \
-          sudo apt-get install -y libwebkit2gtk-4.0-dev
+            ninja-build \
+            pkg-config \
+            portaudio19-dev \
+            python3 \
+            python3-dev \
+            swig
 
-      - name: Install dependencies - Windows
-        if: matrix.os_name == 'windows'
-        shell: pwsh
-        run: |
-          choco install -y cmake ninja git ccache curl 7zip
-          choco install -y csound --ignore-checksums
+      - name: Install Windows dependencies
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            base-devel
+            git
+            mingw-w64-x86_64-ccache
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-curl
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-libsndfile
+            mingw-w64-x86_64-liblo
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-portaudio
+            mingw-w64-x86_64-python
+            mingw-w64-x86_64-swig
 
-      - name: Install JUCE
-        shell: bash
-        run: |
-          mkdir -p include
-          if [ ! -d include/JUCE/.git ]; then
-            rm -rf include/JUCE
-            git clone --depth 1 https://github.com/juce-framework/JUCE.git include/JUCE
-          fi
-
-      - name: Import Apple Developer ID certificate
-        if: matrix.os_name == 'macos' && startsWith(github.ref, 'refs/tags/')
+      - name: Import Apple code signing certificate
+        if: runner.os == 'macOS' && startsWith(github.ref, 'refs/tags/v')
         uses: apple-actions/import-codesign-certs@v3
         with:
           p12-file-base64: ${{ secrets.MACOS_CODESIGN_CERTIFICATE_BASE64 }}
           p12-password: ${{ secrets.MACOS_CODESIGN_CERTIFICATE_PASSWORD }}
 
-      - name: Set ccache environment
+      - name: Configure ccache
         shell: bash
         run: |
-          echo "CMAKE_C_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
-          echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
-          echo "CCACHE_DIR=${{ github.workspace }}/.ccache" >> "$GITHUB_ENV"
+          ccache --set-config=max_size=1G || true
+          ccache --zero-stats || true
 
       - name: Cache ccache
         uses: actions/cache@v4
         with:
-          path: .ccache
-          key: ${{ runner.os }}-ccache-${{ github.ref_name }}-${{ github.sha }}
+          path: |
+            ~/.ccache
+            ~/Library/Caches/ccache
+            C:\Users\runneradmin\AppData\Local\ccache
+          key: ${{ runner.os }}-ccache-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-ccache-${{ github.ref_name }}-
             ${{ runner.os }}-ccache-
 
-      - name: Configure - macOS
-        if: matrix.os_name == 'macos'
+      - name: Check out Csound
+        uses: actions/checkout@v4
+        with:
+          repository: csound/csound
+          ref: ${{ env.CSOUND_VERSION_REF }}
+          path: csound-source
+          submodules: recursive
+
+      - name: Build and install Csound - macOS
+        if: runner.os == 'macOS'
         shell: bash
-        env:
-          APPLE_CODESIGN_IDENTITY: ${{ secrets.APPLE_CODESIGN_IDENTITY }}
         run: |
-          cmake -S CsoundVST3 -B build-macos -G Ninja \
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-            -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 \
-            -DCMAKE_INSTALL_PREFIX="${PWD}/dist" \
+          set -euo pipefail
+          rm -rf csound-build "${{ matrix.platform.csound_install }}"
+          cmake -S csound-source -B csound-build -G Ninja \
+            -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
+            -DCMAKE_INSTALL_PREFIX="${{ matrix.platform.csound_install }}" \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-            -DCSOUND_AC_ENABLE_CODESIGN=${{ startsWith(github.ref, 'refs/tags/') && 'ON' || 'OFF' }} \
-            -DCSOUND_AC_ENABLE_NOTARIZATION=${{ startsWith(github.ref, 'refs/tags/') && 'ON' || 'OFF' }}
+            -DBUILD_TESTS=OFF \
+            -DBUILD_STATIC_LIBRARY=OFF \
+            -DBUILD_MULTI_CORE=ON \
+            -DBUILD_PYTHON_INTERFACE=OFF \
+            -DUSE_DOUBLE=ON \
+            -DCMAKE_PREFIX_PATH="/opt/homebrew;/usr/local"
+          cmake --build csound-build --parallel
+          cmake --install csound-build
+          find "${{ matrix.platform.csound_install }}" -maxdepth 4 \( -type f -o -type d \) | sort | head -200
 
-      - name: Configure - Linux
-        if: matrix.os_name == 'linux'
+      - name: Build and install Csound - Linux
+        if: runner.os == 'Linux'
         shell: bash
         run: |
-          cmake -S CsoundVST3 -B build-linux -G Ninja \
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-            -DCMAKE_INSTALL_PREFIX="${PWD}/dist" \
+          set -euo pipefail
+          rm -rf csound-build "${{ matrix.platform.csound_install }}"
+          cmake -S csound-source -B csound-build -G Ninja \
+            -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
+            -DCMAKE_INSTALL_PREFIX="${{ matrix.platform.csound_install }}" \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DBUILD_TESTS=OFF \
+            -DBUILD_STATIC_LIBRARY=OFF \
+            -DBUILD_MULTI_CORE=ON \
+            -DBUILD_PYTHON_INTERFACE=OFF \
+            -DUSE_DOUBLE=ON
+          cmake --build csound-build --parallel
+          cmake --install csound-build
+          find "${{ matrix.platform.csound_install }}" -maxdepth 4 \( -type f -o -type d \) | sort | head -200
 
-      - name: Configure - Windows
-        if: matrix.os_name == 'windows'
-        shell: bash
+      - name: Build and install Csound - Windows
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
         run: |
-          cmake -S CsoundVST3 -B build-windows -G Ninja \
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-            -DCMAKE_INSTALL_PREFIX="${PWD}/dist" \
+          set -euo pipefail
+          rm -rf csound-build /c/csound-install
+          cmake -S csound-source -B csound-build -G Ninja \
+            -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
+            -DCMAKE_INSTALL_PREFIX=/c/csound-install \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DBUILD_TESTS=OFF \
+            -DBUILD_STATIC_LIBRARY=OFF \
+            -DBUILD_MULTI_CORE=ON \
+            -DBUILD_PYTHON_INTERFACE=OFF \
+            -DUSE_DOUBLE=ON
+          cmake --build csound-build --parallel
+          cmake --install csound-build
+          find /c/csound-install -maxdepth 4 \( -type f -o -type d \) | sort | head -200
 
-      - name: Build, stage, sign, and archive
+      - name: Build CsoundVST3 - macOS
+        if: runner.os == 'macOS'
         shell: bash
         env:
           APPLE_CODESIGN_IDENTITY: ${{ secrets.APPLE_CODESIGN_IDENTITY }}
+          APPLE_NOTARY_KEY: ${{ secrets.APPLE_API_KEY_P8_BASE64 }}
+          APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+          CSOUND_ROOT: ${{ matrix.platform.csound_install }}
+          CMAKE_PREFIX_PATH: ${{ matrix.platform.csound_install }}
+          CMAKE_FRAMEWORK_PATH: ${{ matrix.platform.csound_install }}/Library/Frameworks;${{ matrix.platform.csound_install }}/Frameworks
+          PATH: ${{ matrix.platform.csound_install }}/bin:/usr/local/bin:/opt/homebrew/bin:${{ env.PATH }}
+          DYLD_LIBRARY_PATH: ${{ matrix.platform.csound_install }}/lib:${{ env.DYLD_LIBRARY_PATH }}
+          DYLD_FRAMEWORK_PATH: ${{ matrix.platform.csound_install }}/Library/Frameworks:${{ matrix.platform.csound_install }}/Frameworks:${{ env.DYLD_FRAMEWORK_PATH }}
         run: |
-          cmake --build "${{ matrix.build_dir }}" --parallel --target archive_dist
+          set -euo pipefail
+          rm -rf "${{ matrix.platform.build_dir }}" dist
+          cmake -S CsoundVST3 -B "${{ matrix.platform.build_dir }}" -G Ninja \
+            -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
+            -DCMAKE_INSTALL_PREFIX="${GITHUB_WORKSPACE}/dist" \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCSOUND_ROOT="${{ matrix.platform.csound_install }}" \
+            -DCMAKE_PREFIX_PATH="${{ matrix.platform.csound_install }}" \
+            -DCMAKE_FRAMEWORK_PATH="${{ matrix.platform.csound_install }}/Library/Frameworks;${{ matrix.platform.csound_install }}/Frameworks" \
+            -DCSOUND_AC_ENABLE_CODESIGN="${CSOUND_AC_ENABLE_CODESIGN}" \
+            -DCSOUND_AC_ENABLE_NOTARIZATION="${CSOUND_AC_ENABLE_NOTARIZATION}"
+          cmake --build "${{ matrix.platform.build_dir }}" --parallel --target notarize_dist
 
-      - name: Notarize archive - macOS tags only
-        if: matrix.os_name == 'macos' && startsWith(github.ref, 'refs/tags/')
+      - name: Build CsoundVST3 - Linux
+        if: runner.os == 'Linux'
         shell: bash
         env:
-          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
-          APPLE_API_KEY_P8_BASE64: ${{ secrets.APPLE_API_KEY_P8_BASE64 }}
+          CSOUND_ROOT: ${{ matrix.platform.csound_install }}
+          CMAKE_PREFIX_PATH: ${{ matrix.platform.csound_install }}
+          PKG_CONFIG_PATH: ${{ matrix.platform.csound_install }}/lib/pkgconfig:${{ matrix.platform.csound_install }}/lib64/pkgconfig:${{ env.PKG_CONFIG_PATH }}
+          LD_LIBRARY_PATH: ${{ matrix.platform.csound_install }}/lib:${{ matrix.platform.csound_install }}/lib64:${{ env.LD_LIBRARY_PATH }}
+          PATH: ${{ matrix.platform.csound_install }}/bin:${{ env.PATH }}
         run: |
-          cmake --build build-macos --target notarize_dist
+          set -euo pipefail
+          rm -rf "${{ matrix.platform.build_dir }}" dist
+          cmake -S CsoundVST3 -B "${{ matrix.platform.build_dir }}" -G Ninja \
+            -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
+            -DCMAKE_INSTALL_PREFIX="${GITHUB_WORKSPACE}/dist" \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCSOUND_ROOT="${{ matrix.platform.csound_install }}" \
+            -DCMAKE_PREFIX_PATH="${{ matrix.platform.csound_install }}"
+          cmake --build "${{ matrix.platform.build_dir }}" --parallel --target archive_dist
+
+      - name: Build CsoundVST3 - Windows
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        env:
+          CSOUND_ROOT: C:/csound-install
+          CMAKE_PREFIX_PATH: C:/csound-install
+          PKG_CONFIG_PATH: /c/csound-install/lib/pkgconfig
+          PATH: /c/csound-install/bin:/mingw64/bin:/usr/bin:${{ env.PATH }}
+        run: |
+          set -euo pipefail
+          rm -rf "${{ matrix.platform.build_dir }}" dist
+          cmake -S CsoundVST3 -B "${{ matrix.platform.build_dir }}" -G Ninja \
+            -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
+            -DCMAKE_INSTALL_PREFIX="${GITHUB_WORKSPACE}/dist" \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCSOUND_ROOT=C:/csound-install \
+            -DCMAKE_PREFIX_PATH=C:/csound-install
+          cmake --build "${{ matrix.platform.build_dir }}" --parallel --target archive_dist
 
       - name: Show ccache statistics
+        if: always()
         shell: bash
         run: ccache --show-stats || true
 
-      - name: Upload build archive artifact
+      - name: Upload build archive
         uses: actions/upload-artifact@v4
         with:
-          name: csound-vst3-${{ matrix.os_name }}
-          path: ${{ matrix.archive_glob }}
+          name: csound-vst3-${{ matrix.platform.platform_name }}
+          path: ${{ matrix.platform.archive_glob }}
           if-no-files-found: error
 
-      - name: Upload archives to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Upload release archive
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ matrix.archive_glob }}
+          files: ${{ matrix.platform.archive_glob }}
