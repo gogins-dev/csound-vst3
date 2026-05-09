@@ -251,8 +251,8 @@ jobs:
             -DCSOUND_ROOT="${{ matrix.platform.csound_install }}" \
             -DCMAKE_PREFIX_PATH="${{ matrix.platform.csound_install }}" \
             -DCMAKE_FRAMEWORK_PATH="${{ matrix.platform.csound_install }}/Library/Frameworks;${{ matrix.platform.csound_install }}/Frameworks" \
-            -DCSOUND_AC_ENABLE_CODESIGN="${CSOUND_AC_ENABLE_CODESIGN}" \
-            -DCSOUND_AC_ENABLE_NOTARIZATION="${CSOUND_AC_ENABLE_NOTARIZATION}"
+            -DCSOUND_AC_ENABLE_CODESIGN="YES" \
+            -DCSOUND_AC_ENABLE_NOTARIZATION="YES"
           cmake --build "${{ matrix.platform.build_dir }}" --parallel --target notarize_dist
 
       - name: Build CsoundVST3 - Linux
