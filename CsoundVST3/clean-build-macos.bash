@@ -20,6 +20,8 @@ cmake -S "${source_dir}" -B "${build_dir}" -G Ninja \
     -DCMAKE_INSTALL_PREFIX="${install_dir}" \
     -DCMAKE_PREFIX_PATH="/Library;/Library/Frameworks;/opt/homebrew;/usr/local" \
     -DCMAKE_FRAMEWORK_PATH="/Library/Frameworks;$HOME/Library/Frameworks" \
+    -DCSOUND_AC_ENABLE_CODESIGN=ON \
+    -DCSOUND_AC_ENABLE_NOTARIZATION=OFF \
     ${cmake_args[@]+"${cmake_args[@]}"}
 cmake --build "${build_dir}" --parallel --target archive_dist
 cmake --build "${build_dir}" --target notarize_dist
@@ -51,3 +53,5 @@ fi
 find "${install_dir}" -print
 cmake -E echo "Archive: ${build_dir}/csound-vst3-2.0.0-darwin.zip"
 echo "Completed clean build of CsoundVST3 for macOS. Built artifacts are in dist/."
+echo "Signed with ad hoc identity unless APPLE_CODESIGN_IDENTITY is set (Developer ID for distribution)."
+echo "Run standalone: open \"${install_dir}/Applications/CsoundVST3.app\""

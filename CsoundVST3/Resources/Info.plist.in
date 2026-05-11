@@ -10,7 +10,7 @@
     <key>CFBundleName</key>
     <string>@PRODUCT_NAME@</string>
     <key>CFBundlePackageType</key>
-    <string>BNDL</string>
+    <string>@CFBundle_PACKAGE_TYPE@</string>
     <key>CFBundleShortVersionString</key>
     <string>@PROJECT_VERSION@</string>
     <key>CFBundleVersion</key>

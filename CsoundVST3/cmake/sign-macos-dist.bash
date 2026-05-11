@@ -10,12 +10,16 @@ then
     exit 0
 fi
 
-identity="${APPLE_CODESIGN_IDENTITY:-}"
+identity="${APPLE_CODESIGN_IDENTITY:--}"
 
-if [[ -z "${identity}" ]]
+if [[ "${identity}" == "-" ]]
 then
-    echo "APPLE_CODESIGN_IDENTITY is not set."
-    exit 1
+    echo "APPLE_CODESIGN_IDENTITY not set (using ad hoc signing \"-\" for local builds)."
+    bundle_extra=()
+    macho_extra=()
+else
+    bundle_extra=(--timestamp --options runtime)
+    macho_extra=(--timestamp --options runtime)
 fi
 
 if [[ ! -d "${dist_dir}" ]]
@@ -31,7 +35,7 @@ do
     case "${bundle_path}" in
         *.app|*.vst3|*.component)
             echo "Signing bundle ${bundle_path}"
-            codesign --force --deep --timestamp --options runtime --sign "${identity}" "${bundle_path}"
+            codesign --force --deep "${bundle_extra[@]}" --sign "${identity}" "${bundle_path}"
             ;;
     esac
 done < <(
@@ -49,7 +53,7 @@ do
     if file "${file_path}" | grep -q "Mach-O"
     then
         echo "Signing Mach-O file ${file_path}"
-        codesign --force --timestamp --options runtime --sign "${identity}" "${file_path}"
+        codesign --force "${macho_extra[@]}" --sign "${identity}" "${file_path}"
     fi
 done < <(
     find "${dist_dir}" -type f -print

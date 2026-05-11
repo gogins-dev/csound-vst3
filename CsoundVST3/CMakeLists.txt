@@ -222,14 +222,20 @@ if(APPLE)
     )
 
     set(BASE_BUNDLE_ID "com.irreducibleproductions.csoundvst3")
+    # Info.plist.in uses @EXECUTABLE_NAME@ / @PRODUCT_NAME@ (otherwise CFBundleExecutable is empty and the app won't launch).
+    set(PRODUCT_NAME "CsoundVST3")
+    set(EXECUTABLE_NAME "CsoundVST3")
 
     set(BUNDLE_IDENTIFIER "${BASE_BUNDLE_ID}.vst3")
+    set(CFBundle_PACKAGE_TYPE "BNDL")
     configure_file("${CSOUND_VST3_SOURCE_DIR}/Resources/Info.plist.in" "${CMAKE_BINARY_DIR}/VST3_Info.plist" @ONLY)
 
     set(BUNDLE_IDENTIFIER "${BASE_BUNDLE_ID}.au")
+    set(CFBundle_PACKAGE_TYPE "BNDL")
     configure_file("${CSOUND_VST3_SOURCE_DIR}/Resources/Info.plist.in" "${CMAKE_BINARY_DIR}/AU_Info.plist" @ONLY)
 
     set(BUNDLE_IDENTIFIER "${BASE_BUNDLE_ID}.standalone")
+    set(CFBundle_PACKAGE_TYPE "APPL")
     configure_file("${CSOUND_VST3_SOURCE_DIR}/Resources/Info.plist.in" "${CMAKE_BINARY_DIR}/Standalone_Info.plist" @ONLY)
 
     if(TARGET CsoundVST3_VST3)
@@ -315,6 +321,32 @@ if(APPLE)
             BUNDLE DESTINATION Applications
             COMPONENT CsoundVST3_Runtime
         )
+    endif()
+
+    # Ship CsoundLib64.framework inside each bundle so dist/Applications/*.app runs without a separate Csound install.
+    if(CSOUND_FRAMEWORK_DIR)
+        message(STATUS "Embedding ${CSOUND_FRAMEWORK_DIR} into plugin bundles (/Contents/Frameworks).")
+        if(TARGET CsoundVST3_Standalone)
+            install(DIRECTORY "${CSOUND_FRAMEWORK_DIR}"
+                DESTINATION "Applications/CsoundVST3.app/Contents/Frameworks"
+                COMPONENT CsoundVST3_Runtime
+                USE_SOURCE_PERMISSIONS
+            )
+        endif()
+        if(TARGET CsoundVST3_VST3)
+            install(DIRECTORY "${CSOUND_FRAMEWORK_DIR}"
+                DESTINATION "Library/Audio/Plug-Ins/VST3/CsoundVST3.vst3/Contents/Frameworks"
+                COMPONENT CsoundVST3_Runtime
+                USE_SOURCE_PERMISSIONS
+            )
+        endif()
+        if(TARGET CsoundVST3_AU)
+            install(DIRECTORY "${CSOUND_FRAMEWORK_DIR}"
+                DESTINATION "Library/Audio/Plug-Ins/Components/CsoundVST3.component/Contents/Frameworks"
+                COMPONENT CsoundVST3_Runtime
+                USE_SOURCE_PERMISSIONS
+            )
+        endif()
     endif()
 endif()
 
