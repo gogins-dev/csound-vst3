@@ -906,7 +906,7 @@ build clean_dist: phony CMakeFiles/clean_dist
 #############################################
 # Utility command for stage_dist
 
-build stage_dist: phony CMakeFiles/stage_dist CsoundVST3_artefacts/RelWithDebInfo/libCsoundVST3_SharedCode.a clean_dist
+build stage_dist: phony CMakeFiles/stage_dist CsoundVST3_artefacts/RelWithDebInfo/AU/CsoundVST3.component/Contents/MacOS/CsoundVST3 CsoundVST3_artefacts/RelWithDebInfo/Standalone/CsoundVST3.app/Contents/MacOS/CsoundVST3 CsoundVST3_artefacts/RelWithDebInfo/VST3/CsoundVST3.vst3/Contents/MacOS/CsoundVST3 CsoundVST3_artefacts/RelWithDebInfo/libCsoundVST3_SharedCode.a clean_dist
 
 
 #############################################
@@ -1054,7 +1054,7 @@ build CMakeFiles/clean_dist | ${cmake_ninja_workdir}CMakeFiles/clean_dist: CUSTO
 #############################################
 # Custom command for CMakeFiles/stage_dist
 
-build CMakeFiles/stage_dist | ${cmake_ninja_workdir}CMakeFiles/stage_dist: CUSTOM_COMMAND CsoundVST3_artefacts/RelWithDebInfo/libCsoundVST3_SharedCode.a || CsoundVST3_artefacts/RelWithDebInfo/libCsoundVST3_SharedCode.a clean_dist csound_ac_fetch_csound_threaded libCsoundBinaryData.a
+build CMakeFiles/stage_dist | ${cmake_ninja_workdir}CMakeFiles/stage_dist: CUSTOM_COMMAND CsoundVST3_artefacts/RelWithDebInfo/libCsoundVST3_SharedCode.a CsoundVST3_artefacts/RelWithDebInfo/Standalone/CsoundVST3.app/Contents/MacOS/CsoundVST3 CsoundVST3_artefacts/RelWithDebInfo/VST3/CsoundVST3.vst3/Contents/MacOS/CsoundVST3 CsoundVST3_artefacts/RelWithDebInfo/AU/CsoundVST3.component/Contents/MacOS/CsoundVST3 || CsoundVST3_artefacts/RelWithDebInfo/AU/CsoundVST3.component/Contents/MacOS/CsoundVST3 CsoundVST3_artefacts/RelWithDebInfo/Standalone/CsoundVST3.app/Contents/MacOS/CsoundVST3 CsoundVST3_artefacts/RelWithDebInfo/VST3/CsoundVST3.vst3/Contents/MacOS/CsoundVST3 CsoundVST3_artefacts/RelWithDebInfo/libCsoundVST3_SharedCode.a clean_dist csound_ac_fetch_csound_threaded juce_vst3_helper libCsoundBinaryData.a
   COMMAND = cd /Users/michaelgogins/csound-vst3/build-macos && /opt/homebrew/bin/cmake --install /Users/michaelgogins/csound-vst3/build-macos --prefix /Users/michaelgogins/csound-vst3/CsoundVST3/../dist --component CsoundVST3_Runtime --config RelWithDebInfo
   DESC = Installing runtime artifacts into dist
 
@@ -1062,7 +1062,7 @@ build CMakeFiles/stage_dist | ${cmake_ninja_workdir}CMakeFiles/stage_dist: CUSTO
 #############################################
 # Custom command for CMakeFiles/sign_dist
 
-build CMakeFiles/sign_dist | ${cmake_ninja_workdir}CMakeFiles/sign_dist: CUSTOM_COMMAND || CsoundVST3_artefacts/RelWithDebInfo/libCsoundVST3_SharedCode.a clean_dist csound_ac_fetch_csound_threaded libCsoundBinaryData.a stage_dist
+build CMakeFiles/sign_dist | ${cmake_ninja_workdir}CMakeFiles/sign_dist: CUSTOM_COMMAND || CsoundVST3_artefacts/RelWithDebInfo/AU/CsoundVST3.component/Contents/MacOS/CsoundVST3 CsoundVST3_artefacts/RelWithDebInfo/Standalone/CsoundVST3.app/Contents/MacOS/CsoundVST3 CsoundVST3_artefacts/RelWithDebInfo/VST3/CsoundVST3.vst3/Contents/MacOS/CsoundVST3 CsoundVST3_artefacts/RelWithDebInfo/libCsoundVST3_SharedCode.a clean_dist csound_ac_fetch_csound_threaded juce_vst3_helper libCsoundBinaryData.a stage_dist
   COMMAND = cd /Users/michaelgogins/csound-vst3/build-macos && /bin/bash /Users/michaelgogins/csound-vst3/CsoundVST3/cmake/sign-macos-dist.bash /Users/michaelgogins/csound-vst3/CsoundVST3/../dist ON
   DESC = Signing macOS Mach-O artifacts in dist when enabled
 
@@ -1070,7 +1070,7 @@ build CMakeFiles/sign_dist | ${cmake_ninja_workdir}CMakeFiles/sign_dist: CUSTOM_
 #############################################
 # Custom command for CMakeFiles/archive_dist
 
-build CMakeFiles/archive_dist | ${cmake_ninja_workdir}CMakeFiles/archive_dist: CUSTOM_COMMAND || CsoundVST3_artefacts/RelWithDebInfo/libCsoundVST3_SharedCode.a clean_dist csound_ac_fetch_csound_threaded libCsoundBinaryData.a sign_dist stage_dist
+build CMakeFiles/archive_dist | ${cmake_ninja_workdir}CMakeFiles/archive_dist: CUSTOM_COMMAND || CsoundVST3_artefacts/RelWithDebInfo/AU/CsoundVST3.component/Contents/MacOS/CsoundVST3 CsoundVST3_artefacts/RelWithDebInfo/Standalone/CsoundVST3.app/Contents/MacOS/CsoundVST3 CsoundVST3_artefacts/RelWithDebInfo/VST3/CsoundVST3.vst3/Contents/MacOS/CsoundVST3 CsoundVST3_artefacts/RelWithDebInfo/libCsoundVST3_SharedCode.a clean_dist csound_ac_fetch_csound_threaded juce_vst3_helper libCsoundBinaryData.a sign_dist stage_dist
   COMMAND = cd /Users/michaelgogins/csound-vst3 && /opt/homebrew/bin/cmake -E tar cfv /Users/michaelgogins/csound-vst3/build-macos/csound-vst3-2.0.0-darwin.zip --format=zip -- dist
   DESC = Creating macOS dist archive
 
@@ -1078,7 +1078,7 @@ build CMakeFiles/archive_dist | ${cmake_ninja_workdir}CMakeFiles/archive_dist: C
 #############################################
 # Custom command for CMakeFiles/notarize_dist
 
-build CMakeFiles/notarize_dist | ${cmake_ninja_workdir}CMakeFiles/notarize_dist: CUSTOM_COMMAND || CsoundVST3_artefacts/RelWithDebInfo/libCsoundVST3_SharedCode.a archive_dist clean_dist csound_ac_fetch_csound_threaded libCsoundBinaryData.a sign_dist stage_dist
+build CMakeFiles/notarize_dist | ${cmake_ninja_workdir}CMakeFiles/notarize_dist: CUSTOM_COMMAND || CsoundVST3_artefacts/RelWithDebInfo/AU/CsoundVST3.component/Contents/MacOS/CsoundVST3 CsoundVST3_artefacts/RelWithDebInfo/Standalone/CsoundVST3.app/Contents/MacOS/CsoundVST3 CsoundVST3_artefacts/RelWithDebInfo/VST3/CsoundVST3.vst3/Contents/MacOS/CsoundVST3 CsoundVST3_artefacts/RelWithDebInfo/libCsoundVST3_SharedCode.a archive_dist clean_dist csound_ac_fetch_csound_threaded juce_vst3_helper libCsoundBinaryData.a sign_dist stage_dist
   COMMAND = cd /Users/michaelgogins/csound-vst3/build-macos && /bin/bash /Users/michaelgogins/csound-vst3/CsoundVST3/cmake/notarize-macos-dist.bash /Users/michaelgogins/csound-vst3/build-macos/csound-vst3-2.0.0-darwin.zip ON
   DESC = Notarizing macOS dist archive when enabled
 
@@ -1086,7 +1086,7 @@ build CMakeFiles/notarize_dist | ${cmake_ninja_workdir}CMakeFiles/notarize_dist:
 #############################################
 # Custom command for CMakeFiles/verify_macos_dist
 
-build CMakeFiles/verify_macos_dist | ${cmake_ninja_workdir}CMakeFiles/verify_macos_dist: CUSTOM_COMMAND || CsoundVST3_artefacts/RelWithDebInfo/libCsoundVST3_SharedCode.a archive_dist clean_dist csound_ac_fetch_csound_threaded libCsoundBinaryData.a notarize_dist sign_dist stage_dist
+build CMakeFiles/verify_macos_dist | ${cmake_ninja_workdir}CMakeFiles/verify_macos_dist: CUSTOM_COMMAND || CsoundVST3_artefacts/RelWithDebInfo/AU/CsoundVST3.component/Contents/MacOS/CsoundVST3 CsoundVST3_artefacts/RelWithDebInfo/Standalone/CsoundVST3.app/Contents/MacOS/CsoundVST3 CsoundVST3_artefacts/RelWithDebInfo/VST3/CsoundVST3.vst3/Contents/MacOS/CsoundVST3 CsoundVST3_artefacts/RelWithDebInfo/libCsoundVST3_SharedCode.a archive_dist clean_dist csound_ac_fetch_csound_threaded juce_vst3_helper libCsoundBinaryData.a notarize_dist sign_dist stage_dist
   COMMAND = cd /Users/michaelgogins/csound-vst3/build-macos && /bin/bash /Users/michaelgogins/csound-vst3/CsoundVST3/codesign-check.bash /Users/michaelgogins/csound-vst3/build-macos/csound-vst3-2.0.0-darwin.zip
   DESC = Verifying macOS distribution archive (codesign / Gatekeeper)
 
