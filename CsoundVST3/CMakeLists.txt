@@ -216,6 +216,12 @@ target_compile_definitions(CsoundVST3 PRIVATE
     CSOUND_AC_CSOUND_VERSION_MINOR=${CSOUND_VERSION_MINOR}
 )
 
+# juce_gui_extra pulls GTK/WebKit when JUCE_WEB_BROWSER=1; this project does not use WebBrowserComponent.
+# Disabling avoids missing gtk/gtk.h on Linux CI where JUCE does not attach pkg-config flags to this target.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_compile_definitions(CsoundVST3 PRIVATE JUCE_WEB_BROWSER=0)
+endif()
+
 if(APPLE)
     set(CSOUNDVST3_TARGETS
         CsoundVST3
