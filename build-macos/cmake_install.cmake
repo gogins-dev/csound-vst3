@@ -42,7 +42,7 @@ if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   include("/Users/michaelgogins/csound-vst3/build-macos/JUCE/cmake_install.cmake")
 endif()
 
-if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
+if(CMAKE_INSTALL_COMPONENT STREQUAL "CsoundVST3_Runtime" OR NOT CMAKE_INSTALL_COMPONENT)
   file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/Users/michaelgogins/csound-vst3/build-macos/CsoundVST3_artefacts/RelWithDebInfo/libCsoundVST3_SharedCode.a")
   if(EXISTS "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/lib/libCsoundVST3_SharedCode.a" AND
      NOT IS_SYMLINK "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/lib/libCsoundVST3_SharedCode.a")

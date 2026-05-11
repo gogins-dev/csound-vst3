@@ -1,3 +1,4 @@
+/Users/michaelgogins/csound-vst3/CsoundVST3/../dist/lib/libCsoundVST3_SharedCode.a
 /Users/michaelgogins/csound-vst3/CsoundVST3/../dist/Applications/CsoundVST3.app/Contents/Info.plist
 /Users/michaelgogins/csound-vst3/CsoundVST3/../dist/./README.md
 /Users/michaelgogins/csound-vst3/CsoundVST3/../dist/./Resources/LICENSE
