@@ -52,7 +52,7 @@ message(STATUS "CSOUND_VST3_ARCHIVE: ${CSOUND_VST3_ARCHIVE}")
 message(STATUS "CSOUND_AC_ENABLE_CODESIGN: ${CSOUND_AC_ENABLE_CODESIGN}")
 message(STATUS "CSOUND_AC_ENABLE_NOTARIZATION: ${CSOUND_AC_ENABLE_NOTARIZATION}")
 
-message(STATUS "Refreshing shared files from csound-ac repository head...")
+message(STATUS "Refreshing FindCsoundHomeFirst.cmake from csound-ac (csound_threaded.hpp is fetched at build time)...")
 
 file(MAKE_DIRECTORY "${CSOUND_VST3_SOURCE_DIR}/cmake")
 
@@ -80,29 +80,6 @@ else()
     message(WARNING
         "Failed to refresh FindCsoundHomeFirst.cmake from csound-ac head: "
         "${find_csound_download_message}. Using local copy."
-    )
-endif()
-
-file(DOWNLOAD
-    "https://raw.githubusercontent.com/gogins-dev/csound-ac/refs/heads/master/CsoundAC/csound_threaded.hpp"
-    "${csound_ac_refresh_dir}/csound_threaded.hpp"
-    STATUS csound_threaded_download_status
-    SHOW_PROGRESS
-)
-
-list(GET csound_threaded_download_status 0 csound_threaded_download_code)
-
-if(csound_threaded_download_code EQUAL 0)
-    execute_process(
-        COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-            "${csound_ac_refresh_dir}/csound_threaded.hpp"
-            "${CSOUND_VST3_SOURCE_DIR}/Source/csound_threaded.hpp"
-    )
-else()
-    list(GET csound_threaded_download_status 1 csound_threaded_download_message)
-    message(WARNING
-        "Failed to refresh csound_threaded.hpp from csound-ac head: "
-        "${csound_threaded_download_message}. Using local copy."
     )
 endif()
 
@@ -184,6 +161,26 @@ target_include_directories(CsoundVST3 PRIVATE
     "${CSOUND_VST3_SOURCE_DIR}/Source"
     ${CSOUND_INCLUDE_DIRS}
 )
+
+# Every build: pull CsoundAC/csound_threaded.hpp (not Csound SDK). Source/ is listed before CSOUND_INCLUDE_DIRS
+# so this file wins over any installed csound_threaded.hpp. Download failure is WARNING only (see script).
+set(CSOUND_AC_CSOUND_THREADED_URL
+    "https://raw.githubusercontent.com/gogins-dev/csound-ac/refs/heads/master/CsoundAC/csound_threaded.hpp"
+)
+set(CSOUND_AC_CSOUND_THREADED_DST "${CSOUND_VST3_SOURCE_DIR}/Source/csound_threaded.hpp")
+add_custom_target(csound_ac_fetch_csound_threaded
+    COMMAND "${CMAKE_COMMAND}"
+        -DURL="${CSOUND_AC_CSOUND_THREADED_URL}"
+        -DDST="${CSOUND_AC_CSOUND_THREADED_DST}"
+        -P "${CSOUND_VST3_SOURCE_DIR}/cmake/FetchCsoundACCsoundThreaded.cmake"
+    COMMENT "Download csound-ac CsoundAC/csound_threaded.hpp"
+    VERBATIM
+)
+foreach(_csound_ac_fetch_t IN ITEMS CsoundVST3 CsoundVST3_VST3 CsoundVST3_AU CsoundVST3_Standalone)
+    if(TARGET ${_csound_ac_fetch_t})
+        add_dependencies(${_csound_ac_fetch_t} csound_ac_fetch_csound_threaded)
+    endif()
+endforeach()
 
 target_link_libraries(CsoundVST3 PRIVATE
     CsoundBinaryData
