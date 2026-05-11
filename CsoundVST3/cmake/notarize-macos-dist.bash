@@ -65,3 +65,6 @@ xcrun notarytool submit "${archive}" \
     --key-id "${notary_key_id}" \
     --issuer "${notary_issuer_id}" \
     --wait
+
+echo "Stapling notarization ticket onto ${archive}"
+xcrun stapler staple "${archive}"
