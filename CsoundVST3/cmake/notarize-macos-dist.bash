@@ -39,10 +39,15 @@ then
 fi
 
 key_file="$(mktemp -t "AuthKey_${notary_key_id}.XXXXXX.p8")"
+stitch_dir=""
 
 cleanup()
 {
     rm -f "${key_file}"
+    if [[ -n "${stitch_dir}" ]]
+    then
+        rm -rf "${stitch_dir}"
+    fi
 }
 
 trap cleanup EXIT
@@ -66,5 +71,18 @@ xcrun notarytool submit "${archive}" \
     --issuer "${notary_issuer_id}" \
     --wait
 
-echo "Stapling notarization ticket onto ${archive}"
-xcrun stapler staple "${archive}"
+archive_abs="$(cd "$(dirname "${archive}")" && pwd)/$(basename "${archive}")"
+
+echo "Stapling tickets onto bundles inside archive (stapler cannot staple ZIP files)."
+stitch_dir="$(mktemp -d -t staple-macos-zip.XXXXXX)"
+unzip -q "${archive_abs}" -d "${stitch_dir}"
+
+while IFS= read -r -d '' bundle
+do
+    echo "Stapling notarization ticket onto ${bundle}"
+    xcrun stapler staple "${bundle}"
+done < <(find "${stitch_dir}" -type d \( -name "*.app" -o -name "*.vst3" -o -name "*.component" \) -print0)
+
+echo "Re-packaging ${archive_abs}"
+rm -f "${archive_abs}"
+( cd "${stitch_dir}" && /usr/bin/zip -q -r -y "${archive_abs}" . )

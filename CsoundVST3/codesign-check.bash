@@ -110,8 +110,6 @@ bundle_count="$(wc -l < "${bundle_list}" | tr -d '[:space:]')"
 echo "Found ${macho_count} Mach-O file(s)."
 echo "Found ${bundle_count} app/plugin bundle(s)."
 
-zip_staple_valid=0
-
 if [[ "${bundle_count}" -eq 0 ]]
 then
     echo
@@ -119,21 +117,6 @@ then
     echo "NOTE: This archive contains only loose Mach-O files."
     echo "NOTE: ZIP notarization cannot be verified locally by stapler or spctl."
     echo "NOTE: Treat notarization as successful only if notarytool submit returned 'status: Accepted'."
-fi
-
-section "Stapler (ZIP)"
-
-if [[ "${bundle_count}" -gt 0 ]]
-then
-    if xcrun stapler validate "${zip_file}" >"${stapler_output}" 2>&1
-    then
-        cat "${stapler_output}"
-        pass "stapler validate ZIP (notarization ticket on archive)"
-        zip_staple_valid=1
-    else
-        cat "${stapler_output}"
-        fail "stapler validate ZIP — after notarytool accepts, run: xcrun stapler staple \"${zip_file}\""
-    fi
 fi
 
 section "Code signature checks"
@@ -190,35 +173,29 @@ do
         fail "bundle codesign: ${bundle_relative}"
     fi
 
-    # spctl on apps extracted to a temp dir often fails ("does not seem to be an app") even when
-    # signatures and notarization are fine; the stapled ZIP check above is authoritative for dist zips.
-    if [[ "${zip_staple_valid}" -eq 1 ]]
+    # After notarize-macos-dist.bash, tickets are stapled onto each bundle (ZIP itself cannot be stapled).
+    if xcrun stapler validate "${bundle}" >"${stapler_output}" 2>&1
     then
-        warn "Skipping spctl on extracted bundle (ZIP container already stapler-validated): ${bundle_relative}"
-    elif spctl --assess --type execute --verbose=4 "${bundle}" >"${spctl_output}" 2>&1
+        cat "${stapler_output}"
+        pass "stapler validate bundle: ${bundle_relative}"
+    else
+        cat "${stapler_output}"
+        fail "stapler validate bundle: ${bundle_relative}"
+    fi
+
+    # spctl on bundles under /var/folders/... is unreliable; stapler validate above is authoritative.
+    if spctl --assess --type execute --verbose=4 "${bundle}" >"${spctl_output}" 2>&1
     then
         cat "${spctl_output}"
         if grep -q "source=Notarized Developer ID" "${spctl_output}"
         then
-            pass "Gatekeeper notarized acceptance: ${bundle_relative}"
+            pass "Gatekeeper (spctl): ${bundle_relative}"
         else
-            pass "spctl accepted, but source was not 'Notarized Developer ID': ${bundle_relative}"
+            warn "spctl accepted without 'Notarized Developer ID' label: ${bundle_relative}"
         fi
     else
         cat "${spctl_output}"
-        fail "spctl/Gatekeeper assessment: ${bundle_relative}"
-    fi
-
-    if [[ "${zip_staple_valid}" -eq 1 ]]
-    then
-        warn "Skipping per-bundle stapler validate (ticket is on ZIP): ${bundle_relative}"
-    elif xcrun stapler validate "${bundle}" >"${stapler_output}" 2>&1
-    then
-        cat "${stapler_output}"
-        pass "stapled notarization ticket: ${bundle_relative}"
-    else
-        cat "${stapler_output}"
-        warn "no stapled notarization ticket or stapler validation failed: ${bundle_relative}"
+        warn "spctl assessment skipped/inconclusive (temp path): ${bundle_relative}"
     fi
 done < "${bundle_list}"
 
