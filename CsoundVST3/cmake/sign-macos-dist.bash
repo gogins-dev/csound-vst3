@@ -30,15 +30,13 @@ fi
 
 echo "Signing macOS artifacts in ${dist_dir}"
 
-# Nested frameworks (e.g. dist/.../CsoundVST3.vst3/Contents/Frameworks/CsoundLib64.framework)
-# must be signed before enclosing .app / .vst3 / .component bundles or codesign errors:
-# "bundle format unrecognized, invalid, or unsuitable"
+# 1) Embedded .framework bundles (deepest first). Use --deep so nested libs inside the framework are sealed.
 echo "Signing .framework bundles (deepest paths first)"
 while IFS= read -r fw_path
 do
     [[ -z "${fw_path}" ]] && continue
     echo "Signing framework ${fw_path}"
-    codesign --force "${bundle_extra[@]}" --sign "${identity}" "${fw_path}"
+    codesign --force --deep "${bundle_extra[@]}" --sign "${identity}" "${fw_path}"
 done < <(
     find "${dist_dir}" -type d -name "*.framework" -print |
         awk '{ print length($0) "\t" $0 }' |
@@ -46,6 +44,27 @@ done < <(
         cut -f2-
 )
 
+# 2) Main executable inside each plugin/app bundle (excluded from loose Mach-O pass below).
+echo "Signing Contents/MacOS binaries"
+while IFS= read -r exe_path
+do
+    [[ -z "${exe_path}" ]] && continue
+    case "${exe_path}" in
+        *.framework/*)
+            continue
+            ;;
+    esac
+    [[ "${exe_path}" == *"/Contents/MacOS/"* ]] || continue
+    if file "${exe_path}" | grep -q "Mach-O"
+    then
+        echo "Signing ${exe_path}"
+        codesign --force "${macho_extra[@]}" --sign "${identity}" "${exe_path}"
+    fi
+done < <(
+    find "${dist_dir}" -type f ! -path "*.framework/*" -print
+)
+
+# 3) Loose Mach-O outside bundles
 echo "Signing Mach-O files outside app/vst3/component bundles"
 while IFS= read -r file_path
 do
@@ -65,14 +84,20 @@ done < <(
     find "${dist_dir}" -type f -print
 )
 
+# 4) Outer bundles: --deep on .app; .vst3 / .au .component often fail with --deep once frameworks are embedded —
+#    use a single seal without --deep for those (internals already signed above).
 echo "Signing app/vst3/component bundles"
 while IFS= read -r bundle_path
 do
     [[ -z "${bundle_path}" ]] && continue
     case "${bundle_path}" in
-        *.app|*.vst3|*.component)
+        *.app)
             echo "Signing bundle ${bundle_path}"
             codesign --force --deep "${bundle_extra[@]}" --sign "${identity}" "${bundle_path}"
+            ;;
+        *.vst3|*.component)
+            echo "Signing bundle ${bundle_path}"
+            codesign --force "${bundle_extra[@]}" --sign "${identity}" "${bundle_path}"
             ;;
     esac
 done < <(
