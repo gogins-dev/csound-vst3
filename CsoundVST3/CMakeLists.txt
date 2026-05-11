@@ -373,8 +373,18 @@ add_custom_target(clean_dist
     COMMENT "Creating clean dist directory"
 )
 
+# macOS only: install copies .app/.vst3/.component from the build tree; they must be built first.
+# Depending only on CsoundVST3 can leave CsoundVST3_Standalone unbuilt and yield an empty Contents/MacOS/.
+set(CSOUND_VST3_STAGE_DIST_DEPS clean_dist CsoundVST3)
+if(APPLE)
+    foreach(_stage_bundle_t IN ITEMS CsoundVST3_Standalone CsoundVST3_VST3 CsoundVST3_AU)
+        if(TARGET ${_stage_bundle_t})
+            list(APPEND CSOUND_VST3_STAGE_DIST_DEPS ${_stage_bundle_t})
+        endif()
+    endforeach()
+endif()
 add_custom_target(stage_dist
-    DEPENDS clean_dist CsoundVST3
+    DEPENDS ${CSOUND_VST3_STAGE_DIST_DEPS}
     COMMAND "${CMAKE_COMMAND}" --install "${CMAKE_BINARY_DIR}" --prefix "${CSOUND_VST3_DIST_DIR}" --component CsoundVST3_Runtime --config "$<CONFIG>"
     COMMENT "Installing runtime artifacts into dist"
 )
