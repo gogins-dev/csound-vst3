@@ -112,6 +112,12 @@ if(NOT CSOUND_FOUND)
     message(FATAL_ERROR "Csound was not found.")
 endif()
 
+# CsoundAC's downloaded csound_threaded.hpp uses #include "csound.hpp". Many Linux prefixes put
+# csound.hpp in include/csound/ while FindCsoundHomeFirst sets CSOUND_INCLUDE_DIR to .../include.
+if(CSOUND_INCLUDE_DIR AND EXISTS "${CSOUND_INCLUDE_DIR}/csound/csound.hpp")
+    list(APPEND CSOUND_INCLUDE_DIRS "${CSOUND_INCLUDE_DIR}/csound")
+endif()
+
 message(STATUS "Using Csound executable:    ${CSOUND_EXECUTABLE}")
 message(STATUS "Using Csound library:       ${CSOUND_LIBRARY}")
 message(STATUS "Using Csound include dirs:  ${CSOUND_INCLUDE_DIRS}")
