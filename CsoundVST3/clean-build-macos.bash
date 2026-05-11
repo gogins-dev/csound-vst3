@@ -54,4 +54,4 @@ find "${install_dir}" -print
 cmake -E echo "Archive: ${build_dir}/csound-vst3-2.0.0-darwin.zip"
 echo "Completed clean build of CsoundVST3 for macOS. Built artifacts are in dist/."
 echo "Signed with ad hoc identity unless APPLE_CODESIGN_IDENTITY is set (Developer ID for distribution)."
-echo "Run standalone: open \"${install_dir}/Applications/CsoundVST3.app\""
+echo "Run standalone (use open, not execute): open \"${install_dir}/Applications/CsoundVST3.app\""

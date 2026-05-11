@@ -311,11 +311,12 @@ elseif(UNIX)
     target_link_libraries(CsoundVST3 PRIVATE ${CSOUND_LIBRARY})
 endif()
 
+# Do not install CsoundVST3's BUNDLE to Applications — that collides with CsoundVST3_Standalone's
+# CsoundVST3.app and yields an app bundle with an empty Contents/MacOS ("executable is missing").
 install(TARGETS CsoundVST3
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
-    BUNDLE DESTINATION Applications
     COMPONENT CsoundVST3_Runtime
 )
 
