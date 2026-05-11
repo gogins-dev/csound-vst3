@@ -253,19 +253,19 @@ CSOUND_EXECUTABLE:FILEPATH=/usr/local/bin/csound
 CSOUND_FOUND:BOOL=TRUE
 
 //Csound framework directory
-CSOUND_FRAMEWORK_DIR:PATH=/Library/Frameworks/CsoundLib64.framework
+CSOUND_FRAMEWORK_DIR:PATH=/Users/michaelgogins/Library/Frameworks/CsoundLib64.framework
 
 //Csound include directory
-CSOUND_INCLUDE_DIR:PATH=/Library/Frameworks/CsoundLib64.framework/Headers
+CSOUND_INCLUDE_DIR:PATH=/Users/michaelgogins/Library/Frameworks/CsoundLib64.framework/Headers
 
 //Csound include directories
-CSOUND_INCLUDE_DIRS:STRING=/Library/Frameworks/CsoundLib64.framework/Headers
+CSOUND_INCLUDE_DIRS:STRING=/Users/michaelgogins/Library/Frameworks/CsoundLib64.framework/Headers
 
 //Csound libraries
-CSOUND_LIBRARIES:STRING=/Library/Frameworks/CsoundLib64.framework/CsoundLib64
+CSOUND_LIBRARIES:STRING=/Users/michaelgogins/Library/Frameworks/CsoundLib64.framework/CsoundLib64
 
 //Csound library/framework binary
-CSOUND_LIBRARY:FILEPATH=/Library/Frameworks/CsoundLib64.framework/CsoundLib64
+CSOUND_LIBRARY:FILEPATH=/Users/michaelgogins/Library/Frameworks/CsoundLib64.framework/CsoundLib64
 
 //Csound version
 CSOUND_VERSION:STRING=7.0

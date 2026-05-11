@@ -10,6 +10,7 @@
 /Users/michaelgogins/csound-vst3/build-macos/CMakeFiles/sign_dist.dir
 /Users/michaelgogins/csound-vst3/build-macos/CMakeFiles/archive_dist.dir
 /Users/michaelgogins/csound-vst3/build-macos/CMakeFiles/notarize_dist.dir
+/Users/michaelgogins/csound-vst3/build-macos/CMakeFiles/verify_macos_dist.dir
 /Users/michaelgogins/csound-vst3/build-macos/CMakeFiles/edit_cache.dir
 /Users/michaelgogins/csound-vst3/build-macos/CMakeFiles/rebuild_cache.dir
 /Users/michaelgogins/csound-vst3/build-macos/CMakeFiles/list_install_components.dir
