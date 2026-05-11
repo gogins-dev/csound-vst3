@@ -4,11 +4,11 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleExecutable</key>
-    <string></string>
+    <string>CsoundVST3</string>
     <key>CFBundleIdentifier</key>
     <string>com.irreducibleproductions.csoundvst3.au</string>
     <key>CFBundleName</key>
-    <string></string>
+    <string>CsoundVST3</string>
     <key>CFBundlePackageType</key>
     <string>BNDL</string>
     <key>CFBundleShortVersionString</key>

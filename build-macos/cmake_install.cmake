@@ -63,6 +63,18 @@ if(CMAKE_INSTALL_COMPONENT STREQUAL "CsoundVST3_Runtime" OR NOT CMAKE_INSTALL_CO
 endif()
 
 if(CMAKE_INSTALL_COMPONENT STREQUAL "CsoundVST3_Runtime" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/Applications/CsoundVST3.app/Contents/Frameworks" TYPE DIRECTORY FILES "/Users/michaelgogins/Library/Frameworks/CsoundLib64.framework" USE_SOURCE_PERMISSIONS)
+endif()
+
+if(CMAKE_INSTALL_COMPONENT STREQUAL "CsoundVST3_Runtime" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/Library/Audio/Plug-Ins/VST3/CsoundVST3.vst3/Contents/Frameworks" TYPE DIRECTORY FILES "/Users/michaelgogins/Library/Frameworks/CsoundLib64.framework" USE_SOURCE_PERMISSIONS)
+endif()
+
+if(CMAKE_INSTALL_COMPONENT STREQUAL "CsoundVST3_Runtime" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/Library/Audio/Plug-Ins/Components/CsoundVST3.component/Contents/Frameworks" TYPE DIRECTORY FILES "/Users/michaelgogins/Library/Frameworks/CsoundLib64.framework" USE_SOURCE_PERMISSIONS)
+endif()
+
+if(CMAKE_INSTALL_COMPONENT STREQUAL "CsoundVST3_Runtime" OR NOT CMAKE_INSTALL_COMPONENT)
   file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/." TYPE FILE OPTIONAL FILES "/Users/michaelgogins/csound-vst3/CsoundVST3/../README.md")
 endif()
 
