@@ -285,6 +285,26 @@ if(APPLE)
             )
         endif()
     endforeach()
+
+    # Embed CsoundLib64.framework into built bundles before install. Using install(DIRECTORY …) into the
+    # installed .vst3/.component/.app path can yield incomplete Contents/ (only Frameworks/), which breaks
+    # codesign with "bundle format unrecognized".
+    if(CSOUND_FRAMEWORK_DIR)
+        message(STATUS "Embedding ${CSOUND_FRAMEWORK_DIR} into bundles at build time (POST_BUILD → Contents/Frameworks).")
+        foreach(_csound_embed_tgt IN ITEMS CsoundVST3_Standalone CsoundVST3_VST3 CsoundVST3_AU)
+            if(TARGET ${_csound_embed_tgt})
+                add_custom_command(TARGET ${_csound_embed_tgt} POST_BUILD
+                    COMMAND "${CMAKE_COMMAND}" -E make_directory
+                        "$<TARGET_BUNDLE_CONTENT_DIR:${_csound_embed_tgt}>/Frameworks"
+                    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+                        "${CSOUND_FRAMEWORK_DIR}"
+                        "$<TARGET_BUNDLE_CONTENT_DIR:${_csound_embed_tgt}>/Frameworks"
+                    COMMENT "Embedding CsoundLib64.framework into ${_csound_embed_tgt}"
+                    VERBATIM
+                )
+            endif()
+        endforeach()
+    endif()
 elseif(WIN32)
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 elseif(UNIX)
@@ -321,32 +341,6 @@ if(APPLE)
             BUNDLE DESTINATION Applications
             COMPONENT CsoundVST3_Runtime
         )
-    endif()
-
-    # Ship CsoundLib64.framework inside each bundle so dist/Applications/*.app runs without a separate Csound install.
-    if(CSOUND_FRAMEWORK_DIR)
-        message(STATUS "Embedding ${CSOUND_FRAMEWORK_DIR} into plugin bundles (/Contents/Frameworks).")
-        if(TARGET CsoundVST3_Standalone)
-            install(DIRECTORY "${CSOUND_FRAMEWORK_DIR}"
-                DESTINATION "Applications/CsoundVST3.app/Contents/Frameworks"
-                COMPONENT CsoundVST3_Runtime
-                USE_SOURCE_PERMISSIONS
-            )
-        endif()
-        if(TARGET CsoundVST3_VST3)
-            install(DIRECTORY "${CSOUND_FRAMEWORK_DIR}"
-                DESTINATION "Library/Audio/Plug-Ins/VST3/CsoundVST3.vst3/Contents/Frameworks"
-                COMPONENT CsoundVST3_Runtime
-                USE_SOURCE_PERMISSIONS
-            )
-        endif()
-        if(TARGET CsoundVST3_AU)
-            install(DIRECTORY "${CSOUND_FRAMEWORK_DIR}"
-                DESTINATION "Library/Audio/Plug-Ins/Components/CsoundVST3.component/Contents/Frameworks"
-                COMPONENT CsoundVST3_Runtime
-                USE_SOURCE_PERMISSIONS
-            )
-        endif()
     endif()
 endif()
 
