@@ -34,3 +34,9 @@
 .vscode/
 build/
 include/
+
+# Install staging and local CMake trees (never commit)
+/dist/
+/build-macos/
+/build-linux/
+/build-windows/
