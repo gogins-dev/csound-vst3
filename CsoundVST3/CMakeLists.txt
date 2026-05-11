@@ -295,20 +295,23 @@ if(APPLE)
         endif()
     endforeach()
 
-    # Embed CsoundLib64.framework into built bundles before install. Using install(DIRECTORY …) into the
-    # installed .vst3/.component/.app path can yield incomplete Contents/ (only Frameworks/), which breaks
-    # codesign with "bundle format unrecognized".
+    # Embed CsoundLib64.framework into built bundles before install.
+    # cmake -E copy_directory copies *contents* of the source into the destination; the destination must be
+    # .../Frameworks/<Name>.framework or you get Versions/ directly under Frameworks/ and codesign fails.
     if(CSOUND_FRAMEWORK_DIR)
-        message(STATUS "Embedding ${CSOUND_FRAMEWORK_DIR} into bundles at build time (POST_BUILD → Contents/Frameworks).")
+        get_filename_component(_csound_fw_bundle_name "${CSOUND_FRAMEWORK_DIR}" NAME)
+        message(STATUS "Embedding ${CSOUND_FRAMEWORK_DIR} into bundles at build time (POST_BUILD → Contents/Frameworks/${_csound_fw_bundle_name}).")
         foreach(_csound_embed_tgt IN ITEMS CsoundVST3_Standalone CsoundVST3_VST3 CsoundVST3_AU)
             if(TARGET ${_csound_embed_tgt})
                 add_custom_command(TARGET ${_csound_embed_tgt} POST_BUILD
+                    COMMAND "${CMAKE_COMMAND}" -E rm -rf
+                        "$<TARGET_BUNDLE_CONTENT_DIR:${_csound_embed_tgt}>/Frameworks"
                     COMMAND "${CMAKE_COMMAND}" -E make_directory
                         "$<TARGET_BUNDLE_CONTENT_DIR:${_csound_embed_tgt}>/Frameworks"
                     COMMAND "${CMAKE_COMMAND}" -E copy_directory
                         "${CSOUND_FRAMEWORK_DIR}"
-                        "$<TARGET_BUNDLE_CONTENT_DIR:${_csound_embed_tgt}>/Frameworks"
-                    COMMENT "Embedding CsoundLib64.framework into ${_csound_embed_tgt}"
+                        "$<TARGET_BUNDLE_CONTENT_DIR:${_csound_embed_tgt}>/Frameworks/${_csound_fw_bundle_name}"
+                    COMMENT "Embedding ${_csound_fw_bundle_name} into ${_csound_embed_tgt}"
                     VERBATIM
                 )
             endif()
