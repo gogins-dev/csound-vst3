@@ -173,6 +173,7 @@ jobs:
           cmake -S csound-source -B csound-build -G Ninja \
             -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
             -DCMAKE_INSTALL_PREFIX="${{ matrix.platform.csound_install }}" \
+            -DCS_FRAMEWORK_DEST="${{ matrix.platform.csound_install }}/Library/Frameworks" \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DBUILD_TESTS=OFF \
