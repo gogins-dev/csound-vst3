@@ -22,11 +22,16 @@ option(CSOUND_VST3_EMBED_CSOUND_FRAMEWORK
     "macOS: copy CsoundLib64.framework into each built .app/.vst3/.component (Contents/Frameworks)."
     OFF
 )
-# Ad-hoc re-sign after link with disable-library-validation so system CsoundLib64 can pull Homebrew dylibs.
-# Turn OFF for strict signing experiments; distribution with official Csound typically does not need this.
+# Ad-hoc re-sign after link with disable-library-validation so local system Csound can pull Homebrew dylibs.
+# Default OFF when GITHUB_ACTIONS is set (CI runners); default ON for local configures so ninja runs work.
+if(DEFINED ENV{GITHUB_ACTIONS} AND "$ENV{GITHUB_ACTIONS}" STREQUAL "true")
+    set(_csound_vst3_macos_postbuild_default OFF)
+else()
+    set(_csound_vst3_macos_postbuild_default ON)
+endif()
 option(CSOUND_VST3_MACOS_POSTBUILD_ADHOC_SIGN
     "macOS: after each bundle link, ad-hoc codesign with AllowIncompatibleCsoundDependencies.entitlements."
-    ON
+    ${_csound_vst3_macos_postbuild_default}
 )
 
 set(CSOUND_VST3_SOURCE_DIR

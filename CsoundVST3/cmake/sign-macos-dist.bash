@@ -43,7 +43,7 @@ while IFS= read -r fw_path
 do
     [[ -z "${fw_path}" ]] && continue
     echo "Signing framework ${fw_path}"
-    codesign --force --deep "${bundle_extra[@]}" --sign "${identity}" "${fw_path}"
+    codesign --force --deep "${bundle_extra[@]+"${bundle_extra[@]}"}" --sign "${identity}" "${fw_path}"
 done < <(
     find "${dist_dir}" -type d -name "*.framework" -print |
         awk '{ print length($0) "\t" $0 }' |
@@ -65,7 +65,7 @@ do
     if file "${exe_path}" | grep -q "Mach-O"
     then
         echo "Signing ${exe_path}"
-        codesign --force "${macho_extra[@]}" "${ent_args[@]}" --sign "${identity}" "${exe_path}"
+        codesign --force "${macho_extra[@]+"${macho_extra[@]}"}" "${ent_args[@]+"${ent_args[@]}"}" --sign "${identity}" "${exe_path}"
     fi
 done < <(
     find "${dist_dir}" -type f ! -path "*.framework/*" -print
@@ -85,7 +85,7 @@ do
     if file "${file_path}" | grep -q "Mach-O"
     then
         echo "Signing Mach-O file ${file_path}"
-        codesign --force "${macho_extra[@]}" --sign "${identity}" "${file_path}"
+        codesign --force "${macho_extra[@]+"${macho_extra[@]}"}" --sign "${identity}" "${file_path}"
     fi
 done < <(
     find "${dist_dir}" -type f -print
@@ -100,11 +100,11 @@ do
     case "${bundle_path}" in
         *.app)
             echo "Signing bundle ${bundle_path}"
-            codesign --force --deep "${bundle_extra[@]}" "${ent_args[@]}" --sign "${identity}" "${bundle_path}"
+            codesign --force --deep "${bundle_extra[@]+"${bundle_extra[@]}"}" "${ent_args[@]+"${ent_args[@]}"}" --sign "${identity}" "${bundle_path}"
             ;;
         *.vst3|*.component)
             echo "Signing bundle ${bundle_path}"
-            codesign --force "${bundle_extra[@]}" "${ent_args[@]}" --sign "${identity}" "${bundle_path}"
+            codesign --force "${bundle_extra[@]+"${bundle_extra[@]}"}" "${ent_args[@]+"${ent_args[@]}"}" --sign "${identity}" "${bundle_path}"
             ;;
     esac
 done < <(

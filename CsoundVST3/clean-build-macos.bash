@@ -27,8 +27,8 @@ entitlements="${source_dir}/Resources/macos/AllowIncompatibleCsoundDependencies.
 if [[ "${strict_codesign}" != true && -f "${entitlements}" ]]
 then
     export CSOUND_VST3_MACOS_ENTITLEMENTS="${entitlements}"
-    echo "CSOUND_VST3_MACOS_ENTITLEMENTS=${entitlements} (for dist signing; Homebrew-linked system Csound)."
-    echo "Pass --strict-codesign to omit (e.g. notarized release with self-contained Csound)."
+    echo "CSOUND_VST3_MACOS_ENTITLEMENTS=${entitlements} (local dist signing; use with Homebrew-linked system Csound)."
+    echo "GitHub Actions omits this for strict release signing; pass --strict-codesign here to match CI."
 else
     unset CSOUND_VST3_MACOS_ENTITLEMENTS 2>/dev/null || true
     if [[ "${strict_codesign}" == true ]]

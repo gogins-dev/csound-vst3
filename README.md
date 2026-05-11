@@ -43,7 +43,20 @@ the DAW using MIDI control change messages.
 
 Please log any bug reports or feature requests as a GitHub issue.
 
+## macOS build objectives
+
+These three modes are all supported by the CMake layout in `CsoundVST3/`:
+
+1. **Build without signing or notarizing; run locally.** Leave the defaults (`CSOUND_AC_ENABLE_CODESIGN=OFF`, `CSOUND_AC_ENABLE_NOTARIZATION=OFF`). Configure and build with Ninja (or your IDE) and run or load plugins from the build tree under `CsoundVST3_artefacts/` (for example the Standalone `.app`). You do not need `archive_dist`, `sign_dist`, or `notarize_dist`.
+
+2. **Build with signing and notarizing; run locally.** Turn `CSOUND_AC_ENABLE_CODESIGN` and `CSOUND_AC_ENABLE_NOTARIZATION` **ON**, supply your Apple signing and notary credentials, and build the `notarize_dist` target. The helper `CsoundVST3/clean-build-macos.bash` runs dist, signing, and the notarize target; by default it leaves notarization **OFF** in CMake for a shorter loop—pass `-DCSOUND_AC_ENABLE_NOTARIZATION=ON` through the script’s extra arguments when you want a full notarized zip locally. For a **system-installed Csound** that still pulls Homebrew libraries (for example `libsndfile`), local signing can use optional entitlements via `CSOUND_VST3_MACOS_ENTITLEMENTS` (see `clean-build-macos.bash`, or `--strict-codesign` there to match strict CI signing). Post-link ad-hoc signing with entitlements is controlled by `CSOUND_VST3_MACOS_POSTBUILD_ADHOC_SIGN` (default **ON** locally so incremental `ninja` runs stay runnable against Homebrew-linked Csound).
+
+3. **Build with signing and notarizing on CI runners; no Csound bundled; end users use their own Csound 7.** Keep **`CSOUND_VST3_EMBED_CSOUND_FRAMEWORK=OFF`** (default). The GitHub Actions macOS job does **not** set `CSOUND_VST3_MACOS_ENTITLEMENTS` and forces **`CSOUND_VST3_MACOS_POSTBUILD_ADHOC_SIGN=OFF`**, so release artifacts are signed strictly for distribution. Binaries load **`CsoundLib64.framework` from `/Library/Frameworks`** via `@rpath` (see the post-link rewrite step in `CMakeLists.txt`). End users install a **binary-compatible Csound 7** (preferably an official build whose dependencies satisfy library validation when loaded from a signed host).
+
 ## Installation
+
+NOTE: As of this release, CsoundVST3 requires that Csound version 7 already 
+be installed on the user's system.
 
 Download the installation archive from https://github.com/gogins/csound-vst3 
 and unzip it.
@@ -52,7 +65,7 @@ Copy the CsoundVST3.vst3 directory and its contents to your user VST3 plugins
 directory. For example, on macOS, that would normally end up as 
 ~/Library/Audio/Plug-Ins/VST3/CsoundVST3.vst3.
 
-To use the standalone version of CsoundVST3, copy CsoundvST3.app to your 
+To use the standalone version of CsoundVST3, copy CsoundVST3.app to your 
 computer's Applications folder.
 
 ## Usage

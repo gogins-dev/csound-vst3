@@ -262,6 +262,8 @@ jobs:
           CMAKE_FRAMEWORK_PATH: ${{ matrix.platform.csound_install }}/Library/Frameworks;${{ matrix.platform.csound_install }}/Frameworks
         run: |
           set -euo pipefail
+          # Release signing: no disable-library-validation (strict). Local clean-build-macos sets CSOUND_VST3_MACOS_ENTITLEMENTS for Homebrew-linked Csound.
+          unset CSOUND_VST3_MACOS_ENTITLEMENTS || true
           # Prepend Csound tools without replacing PATH (${{ env.PATH }} is empty in workflow expressions).
           export PATH="${{ matrix.platform.csound_install }}/bin:/usr/local/bin:/opt/homebrew/bin:${PATH}"
           export DYLD_LIBRARY_PATH="${{ matrix.platform.csound_install }}/lib:${DYLD_LIBRARY_PATH:-}"
@@ -276,7 +278,8 @@ jobs:
             -DCMAKE_PREFIX_PATH="${{ matrix.platform.csound_install }}" \
             -DCMAKE_FRAMEWORK_PATH="${{ matrix.platform.csound_install }}/Library/Frameworks;${{ matrix.platform.csound_install }}/Frameworks" \
             -DCSOUND_AC_ENABLE_CODESIGN="${CSOUND_AC_ENABLE_CODESIGN}" \
-            -DCSOUND_AC_ENABLE_NOTARIZATION="${CSOUND_AC_ENABLE_NOTARIZATION}"
+            -DCSOUND_AC_ENABLE_NOTARIZATION="${CSOUND_AC_ENABLE_NOTARIZATION}" \
+            -DCSOUND_VST3_MACOS_POSTBUILD_ADHOC_SIGN=OFF
           cmake --build "${{ matrix.platform.build_dir }}" --parallel --target notarize_dist
 
       - name: Verify macOS distribution archive
