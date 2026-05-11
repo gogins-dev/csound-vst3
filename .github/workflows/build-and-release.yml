@@ -179,6 +179,7 @@ jobs:
             -DBUILD_STATIC_LIBRARY=OFF \
             -DBUILD_MULTI_CORE=ON \
             -DBUILD_PYTHON_INTERFACE=OFF \
+            -DINSTALL_PYTHON_INTERFACE=OFF \
             -DUSE_DOUBLE=ON \
             -DCMAKE_PREFIX_PATH="/opt/homebrew;/usr/local"
           cmake --build csound-build --parallel
@@ -200,6 +201,7 @@ jobs:
             -DBUILD_STATIC_LIBRARY=OFF \
             -DBUILD_MULTI_CORE=ON \
             -DBUILD_PYTHON_INTERFACE=OFF \
+            -DINSTALL_PYTHON_INTERFACE=OFF \
             -DUSE_DOUBLE=ON
           cmake --build csound-build --parallel
           cmake --install csound-build
@@ -220,6 +222,7 @@ jobs:
             -DBUILD_STATIC_LIBRARY=OFF \
             -DBUILD_MULTI_CORE=ON \
             -DBUILD_PYTHON_INTERFACE=OFF \
+            -DINSTALL_PYTHON_INTERFACE=OFF \
             -DUSE_DOUBLE=ON
           cmake --build csound-build --parallel
           cmake --install csound-build
