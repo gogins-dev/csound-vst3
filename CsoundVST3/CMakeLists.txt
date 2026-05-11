@@ -22,6 +22,12 @@ option(CSOUND_VST3_EMBED_CSOUND_FRAMEWORK
     "macOS: copy CsoundLib64.framework into each built .app/.vst3/.component (Contents/Frameworks)."
     OFF
 )
+# Ad-hoc re-sign after link with disable-library-validation so system CsoundLib64 can pull Homebrew dylibs.
+# Turn OFF for strict signing experiments; distribution with official Csound typically does not need this.
+option(CSOUND_VST3_MACOS_POSTBUILD_ADHOC_SIGN
+    "macOS: after each bundle link, ad-hoc codesign with AllowIncompatibleCsoundDependencies.entitlements."
+    ON
+)
 
 set(CSOUND_VST3_SOURCE_DIR
     "${CMAKE_CURRENT_LIST_DIR}"
@@ -58,6 +64,7 @@ message(STATUS "CSOUND_VST3_ARCHIVE: ${CSOUND_VST3_ARCHIVE}")
 message(STATUS "CSOUND_AC_ENABLE_CODESIGN: ${CSOUND_AC_ENABLE_CODESIGN}")
 message(STATUS "CSOUND_AC_ENABLE_NOTARIZATION: ${CSOUND_AC_ENABLE_NOTARIZATION}")
 message(STATUS "CSOUND_VST3_EMBED_CSOUND_FRAMEWORK: ${CSOUND_VST3_EMBED_CSOUND_FRAMEWORK}")
+message(STATUS "CSOUND_VST3_MACOS_POSTBUILD_ADHOC_SIGN: ${CSOUND_VST3_MACOS_POSTBUILD_ADHOC_SIGN}")
 
 message(STATUS "Refreshing FindCsoundHomeFirst.cmake from csound-ac (csound_threaded.hpp is fetched at build time)...")
 
@@ -338,6 +345,34 @@ if(APPLE)
                         "${CSOUND_VST3_SOURCE_DIR}/cmake/rewrite-csound-macos-dylib-ref.bash"
                         "$<TARGET_FILE:${_rewrite_t}>"
                     COMMENT "Rewrite CsoundLib64 dependency to @rpath for system-installed Csound 7"
+                    VERBATIM
+                )
+            endif()
+        endforeach()
+    endif()
+
+    set(_csound_entitlements "${CSOUND_VST3_SOURCE_DIR}/Resources/macos/AllowIncompatibleCsoundDependencies.entitlements")
+    if(CSOUND_VST3_MACOS_POSTBUILD_ADHOC_SIGN AND EXISTS "${_csound_entitlements}")
+        if(TARGET CsoundVST3_Standalone)
+            add_custom_command(TARGET CsoundVST3_Standalone POST_BUILD
+                COMMAND /bin/bash
+                    "${CSOUND_VST3_SOURCE_DIR}/cmake/postbuild-sign-macos-bundle.bash"
+                    "$<TARGET_BUNDLE_DIR:CsoundVST3_Standalone>"
+                    "${_csound_entitlements}"
+                    --deep
+                COMMENT "Post-link codesign Standalone (entitlements for Homebrew-linked system Csound)"
+                VERBATIM
+            )
+        endif()
+        foreach(_adhoc_t IN ITEMS CsoundVST3_VST3 CsoundVST3_AU)
+            if(TARGET ${_adhoc_t})
+                add_custom_command(TARGET ${_adhoc_t} POST_BUILD
+                    COMMAND /bin/bash
+                        "${CSOUND_VST3_SOURCE_DIR}/cmake/postbuild-sign-macos-bundle.bash"
+                        "$<TARGET_BUNDLE_DIR:${_adhoc_t}>"
+                        "${_csound_entitlements}"
+                        NONE
+                    COMMENT "Post-link codesign ${_adhoc_t} (entitlements for Homebrew-linked system Csound)"
                     VERBATIM
                 )
             endif()

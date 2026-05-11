@@ -30,6 +30,13 @@ fi
 
 echo "Signing macOS artifacts in ${dist_dir}"
 
+ent_args=()
+if [[ -n "${CSOUND_VST3_MACOS_ENTITLEMENTS:-}" && -f "${CSOUND_VST3_MACOS_ENTITLEMENTS}" ]]
+then
+    ent_args=(--entitlements "${CSOUND_VST3_MACOS_ENTITLEMENTS}")
+    echo "Using CSOUND_VST3_MACOS_ENTITLEMENTS=${CSOUND_VST3_MACOS_ENTITLEMENTS} (Contents/MacOS + outer bundles)."
+fi
+
 # 1) Embedded .framework bundles (deepest first). Use --deep so nested libs inside the framework are sealed.
 echo "Signing .framework bundles (deepest paths first)"
 while IFS= read -r fw_path
@@ -58,7 +65,7 @@ do
     if file "${exe_path}" | grep -q "Mach-O"
     then
         echo "Signing ${exe_path}"
-        codesign --force "${macho_extra[@]}" --sign "${identity}" "${exe_path}"
+        codesign --force "${macho_extra[@]}" "${ent_args[@]}" --sign "${identity}" "${exe_path}"
     fi
 done < <(
     find "${dist_dir}" -type f ! -path "*.framework/*" -print
@@ -93,11 +100,11 @@ do
     case "${bundle_path}" in
         *.app)
             echo "Signing bundle ${bundle_path}"
-            codesign --force --deep "${bundle_extra[@]}" --sign "${identity}" "${bundle_path}"
+            codesign --force --deep "${bundle_extra[@]}" "${ent_args[@]}" --sign "${identity}" "${bundle_path}"
             ;;
         *.vst3|*.component)
             echo "Signing bundle ${bundle_path}"
-            codesign --force "${bundle_extra[@]}" --sign "${identity}" "${bundle_path}"
+            codesign --force "${bundle_extra[@]}" "${ent_args[@]}" --sign "${identity}" "${bundle_path}"
             ;;
     esac
 done < <(

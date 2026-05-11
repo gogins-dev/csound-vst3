@@ -2,15 +2,40 @@
 set -euo pipefail
 
 echo "Cleaning and building CsoundVST3 for macOS..."
+strict_codesign=false
 cmake_args=()
-if [[ $# -gt 0 ]]; then
-    cmake_args=("$@")
-fi
+while (($#))
+do
+    case "$1" in
+        --strict-codesign)
+            strict_codesign=true
+            shift
+            ;;
+        *)
+            cmake_args+=("$1")
+            shift
+            ;;
+    esac
+done
 
 source_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${source_dir}/.." && pwd)"
 build_dir="${repo_root}/build-macos"
 install_dir="${repo_root}/dist"
+entitlements="${source_dir}/Resources/macos/AllowIncompatibleCsoundDependencies.entitlements"
+
+if [[ "${strict_codesign}" != true && -f "${entitlements}" ]]
+then
+    export CSOUND_VST3_MACOS_ENTITLEMENTS="${entitlements}"
+    echo "CSOUND_VST3_MACOS_ENTITLEMENTS=${entitlements} (for dist signing; Homebrew-linked system Csound)."
+    echo "Pass --strict-codesign to omit (e.g. notarized release with self-contained Csound)."
+else
+    unset CSOUND_VST3_MACOS_ENTITLEMENTS 2>/dev/null || true
+    if [[ "${strict_codesign}" == true ]]
+    then
+        echo "Strict codesign: CSOUND_VST3_MACOS_ENTITLEMENTS unset."
+    fi
+fi
 
 rm -rf "${build_dir}" "${install_dir}"
 cmake -S "${source_dir}" -B "${build_dir}" -G Ninja \
