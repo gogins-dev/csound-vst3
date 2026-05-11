@@ -5,6 +5,7 @@
 /Users/michaelgogins/csound-vst3/build-macos/CMakeFiles/CsoundVST3_VST3.dir
 /Users/michaelgogins/csound-vst3/build-macos/CMakeFiles/juce_vst3_helper.dir
 /Users/michaelgogins/csound-vst3/build-macos/CMakeFiles/CsoundBinaryData.dir
+/Users/michaelgogins/csound-vst3/build-macos/CMakeFiles/csound_ac_fetch_csound_threaded.dir
 /Users/michaelgogins/csound-vst3/build-macos/CMakeFiles/clean_dist.dir
 /Users/michaelgogins/csound-vst3/build-macos/CMakeFiles/stage_dist.dir
 /Users/michaelgogins/csound-vst3/build-macos/CMakeFiles/sign_dist.dir
