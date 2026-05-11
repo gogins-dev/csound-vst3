@@ -274,12 +274,12 @@ jobs:
             -DCSOUND_ROOT="${{ matrix.platform.csound_install }}" \
             -DCMAKE_PREFIX_PATH="${{ matrix.platform.csound_install }}" \
             -DCMAKE_FRAMEWORK_PATH="${{ matrix.platform.csound_install }}/Library/Frameworks;${{ matrix.platform.csound_install }}/Frameworks" \
-            -DCSOUND_AC_ENABLE_CODESIGN="YES" \
-            -DCSOUND_AC_ENABLE_NOTARIZATION="YES"
+            -DCSOUND_AC_ENABLE_CODESIGN="${CSOUND_AC_ENABLE_CODESIGN}" \
+            -DCSOUND_AC_ENABLE_NOTARIZATION="${CSOUND_AC_ENABLE_NOTARIZATION}"
           cmake --build "${{ matrix.platform.build_dir }}" --parallel --target notarize_dist
 
       - name: Verify macOS distribution archive
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && env.CSOUND_AC_ENABLE_CODESIGN == 'ON' && env.CSOUND_AC_ENABLE_NOTARIZATION == 'ON'
         shell: bash
         run: |
           set -euo pipefail
