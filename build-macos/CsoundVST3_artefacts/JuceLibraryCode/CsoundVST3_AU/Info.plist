@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist>
+  <dict>
+    <key>CFBundleExecutable</key>
+    <string>CsoundVST3</string>
+    <key>CFBundleIconFile</key>
+    <string></string>
+    <key>CFBundleIdentifier</key>
+    <string>com.irreducibleproductions.csoundvst3</string>
+    <key>CFBundleName</key>
+    <string>CsoundVST3</string>
+    <key>CFBundleDisplayName</key>
+    <string>CsoundVST3</string>
+    <key>CFBundlePackageType</key>
+    <string>BNDL</string>
+    <key>CFBundleSignature</key>
+    <string>????</string>
+    <key>CFBundleShortVersionString</key>
+    <string>2.0.0</string>
+    <key>CFBundleVersion</key>
+    <string>2.0.0</string>
+    <key>NSHumanReadableCopyright</key>
+    <string></string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>AudioComponents</key>
+    <array>
+      <dict>
+        <key>name</key>
+        <string>Irreducible Productions: CsoundVST3</string>
+        <key>description</key>
+        <string>CsoundVST3</string>
+        <key>factoryFunction</key>
+        <string>CsoundVST3AUFactory</string>
+        <key>manufacturer</key>
+        <string>IrPr</string>
+        <key>type</key>
+        <string>aumi</string>
+        <key>subtype</key>
+        <string>Csv3</string>
+        <key>version</key>
+        <integer>131072</integer>
+        <key>resourceUsage</key>
+        <dict>
+          <key>network.client</key>
+          <true/>
+          <key>temporary-exception.files.all.read-write</key>
+          <true/>
+        </dict>
+      </dict>
+    </array>
+  </dict>
+</plist>

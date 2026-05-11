@@ -1,0 +1,13 @@
+/Users/michaelgogins/csound-vst3/CsoundVST3/../dist/Applications/CsoundVST3.app/Contents/Info.plist
+/Users/michaelgogins/csound-vst3/CsoundVST3/../dist/./README.md
+/Users/michaelgogins/csound-vst3/CsoundVST3/../dist/./Resources/LICENSE
+/Users/michaelgogins/csound-vst3/CsoundVST3/../dist/./Resources/README.saved
+/Users/michaelgogins/csound-vst3/CsoundVST3/../dist/./Resources/angel_concert.png
+/Users/michaelgogins/csound-vst3/CsoundVST3/../dist/./Resources/Examples/CsoundVST3.csd
+/Users/michaelgogins/csound-vst3/CsoundVST3/../dist/./Resources/Examples/CsoundVST3MidiOut.csd
+/Users/michaelgogins/csound-vst3/CsoundVST3/../dist/./Resources/Examples/Xanadu.csd
+/Users/michaelgogins/csound-vst3/CsoundVST3/../dist/./Resources/Examples/CsoundVST3AudioIn.csd
+/Users/michaelgogins/csound-vst3/CsoundVST3/../dist/./Resources/angel_concert 2.icns
+/Users/michaelgogins/csound-vst3/CsoundVST3/../dist/./Resources/Info.plist.in
+/Users/michaelgogins/csound-vst3/CsoundVST3/../dist/./Resources/angel_concert.icns
+/Users/michaelgogins/csound-vst3/CsoundVST3/../dist/./Resources/angel_concert.ico
