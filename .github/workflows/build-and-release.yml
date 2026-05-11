@@ -254,6 +254,21 @@ jobs:
             -DCSOUND_AC_ENABLE_NOTARIZATION="YES"
           cmake --build "${{ matrix.platform.build_dir }}" --parallel --target notarize_dist
 
+      - name: Verify macOS distribution archive
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          glob="${{ matrix.platform.archive_glob }}"
+          matches=( ${glob} )
+          if (( ${#matches[@]} != 1 ))
+          then
+            echo "Expected exactly one archive matching ${glob}, got ${#matches[@]}."
+            exit 1
+          fi
+          bash "${GITHUB_WORKSPACE}/CsoundVST3/codesign-check.bash" "${GITHUB_WORKSPACE}/${matches[0]}"
+
       - name: Build CsoundVST3 - Linux
         if: runner.os == 'Linux'
         shell: bash

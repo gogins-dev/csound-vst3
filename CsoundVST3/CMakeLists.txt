@@ -371,6 +371,17 @@ if(APPLE)
         COMMENT "Notarizing macOS dist archive when enabled"
     )
 
+    if(CSOUND_AC_ENABLE_CODESIGN AND CSOUND_AC_ENABLE_NOTARIZATION)
+        add_custom_target(verify_macos_dist
+            DEPENDS notarize_dist
+            COMMAND /bin/bash
+                "${CSOUND_VST3_SOURCE_DIR}/codesign-check.bash"
+                "${CSOUND_VST3_ARCHIVE}"
+            VERBATIM
+            COMMENT "Verifying macOS distribution archive (codesign / Gatekeeper)"
+        )
+    endif()
+
 else()
     add_custom_target(sign_dist
         DEPENDS stage_dist
