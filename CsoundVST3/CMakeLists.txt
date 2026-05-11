@@ -16,6 +16,12 @@ endif()
 
 option(CSOUND_AC_ENABLE_CODESIGN "Sign Mach-O artifacts in dist when credentials are available." OFF)
 option(CSOUND_AC_ENABLE_NOTARIZATION "Notarize the macOS distribution archive when credentials are available." OFF)
+# Default OFF: release assumes a binary-compatible Csound 7 is already installed (e.g. CsoundLib64.framework
+# under /Library/Frameworks or ~/Library/Frameworks). Set ON only for a self-contained bundle that ships Csound.
+option(CSOUND_VST3_EMBED_CSOUND_FRAMEWORK
+    "macOS: copy CsoundLib64.framework into each built .app/.vst3/.component (Contents/Frameworks)."
+    OFF
+)
 
 set(CSOUND_VST3_SOURCE_DIR
     "${CMAKE_CURRENT_LIST_DIR}"
@@ -51,6 +57,7 @@ message(STATUS "CSOUND_VST3_DIST_DIR: ${CSOUND_VST3_DIST_DIR}")
 message(STATUS "CSOUND_VST3_ARCHIVE: ${CSOUND_VST3_ARCHIVE}")
 message(STATUS "CSOUND_AC_ENABLE_CODESIGN: ${CSOUND_AC_ENABLE_CODESIGN}")
 message(STATUS "CSOUND_AC_ENABLE_NOTARIZATION: ${CSOUND_AC_ENABLE_NOTARIZATION}")
+message(STATUS "CSOUND_VST3_EMBED_CSOUND_FRAMEWORK: ${CSOUND_VST3_EMBED_CSOUND_FRAMEWORK}")
 
 message(STATUS "Refreshing FindCsoundHomeFirst.cmake from csound-ac (csound_threaded.hpp is fetched at build time)...")
 
@@ -281,10 +288,12 @@ if(APPLE)
             )
             if(CSOUND_FRAMEWORK_DIR)
                 get_filename_component(csound_framework_parent "${CSOUND_FRAMEWORK_DIR}" DIRECTORY)
-                target_link_options(${target} PRIVATE
-                    "-F${csound_framework_parent}"
-                    "-Wl,-rpath,${csound_framework_parent}"
-                )
+                target_link_options(${target} PRIVATE "-F${csound_framework_parent}")
+                # Only bake the build machine's framework path into rpath when embedding; otherwise rely on
+                # /Library/Frameworks plus a POST_BUILD rewrite of the Csound dylib reference to @rpath.
+                if(CSOUND_VST3_EMBED_CSOUND_FRAMEWORK)
+                    target_link_options(${target} PRIVATE "-Wl,-rpath,${csound_framework_parent}")
+                endif()
             endif()
             set_target_properties(${target} PROPERTIES
                 MACOSX_BUNDLE TRUE
@@ -295,12 +304,11 @@ if(APPLE)
         endif()
     endforeach()
 
-    # Embed CsoundLib64.framework into built bundles before install.
-    # cmake -E copy_directory copies *contents* of the source into the destination; the destination must be
-    # .../Frameworks/<Name>.framework or you get Versions/ directly under Frameworks/ and codesign fails.
-    if(CSOUND_FRAMEWORK_DIR)
+    # Optional: ship Csound inside each bundle. When OFF (default), plugins load the host's Csound 7 via
+    # rpath (/Library/Frameworks, etc.) and the dylib path recorded at link time.
+    if(CSOUND_VST3_EMBED_CSOUND_FRAMEWORK AND CSOUND_FRAMEWORK_DIR)
         get_filename_component(_csound_fw_bundle_name "${CSOUND_FRAMEWORK_DIR}" NAME)
-        message(STATUS "Embedding ${CSOUND_FRAMEWORK_DIR} into bundles at build time (POST_BUILD → Contents/Frameworks/${_csound_fw_bundle_name}).")
+        message(STATUS "Embedding ${CSOUND_FRAMEWORK_DIR} into bundles (POST_BUILD → Contents/Frameworks/${_csound_fw_bundle_name}).")
         foreach(_csound_embed_tgt IN ITEMS CsoundVST3_Standalone CsoundVST3_VST3 CsoundVST3_AU)
             if(TARGET ${_csound_embed_tgt})
                 add_custom_command(TARGET ${_csound_embed_tgt} POST_BUILD
@@ -308,10 +316,28 @@ if(APPLE)
                         "$<TARGET_BUNDLE_CONTENT_DIR:${_csound_embed_tgt}>/Frameworks"
                     COMMAND "${CMAKE_COMMAND}" -E make_directory
                         "$<TARGET_BUNDLE_CONTENT_DIR:${_csound_embed_tgt}>/Frameworks"
-                    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+                    COMMAND /usr/bin/ditto
                         "${CSOUND_FRAMEWORK_DIR}"
                         "$<TARGET_BUNDLE_CONTENT_DIR:${_csound_embed_tgt}>/Frameworks/${_csound_fw_bundle_name}"
-                    COMMENT "Embedding ${_csound_fw_bundle_name} into ${_csound_embed_tgt}"
+                    COMMENT "Embedding ${_csound_fw_bundle_name} into ${_csound_embed_tgt} (ditto preserves framework symlinks)"
+                    VERBATIM
+                )
+            endif()
+        endforeach()
+    elseif(CSOUND_FRAMEWORK_DIR)
+        message(STATUS "Not embedding Csound framework (CSOUND_VST3_EMBED_CSOUND_FRAMEWORK=OFF); require compatible Csound 7 on the system.")
+    endif()
+
+    # Ship-time: load Csound from /Library/Frameworks (or other paths already on INSTALL_RPATH), not the
+    # absolute path where this project was linked (e.g. CI's /tmp/csound-install/...).
+    if(NOT CSOUND_VST3_EMBED_CSOUND_FRAMEWORK)
+        foreach(_rewrite_t IN ITEMS CsoundVST3_VST3 CsoundVST3_AU CsoundVST3_Standalone)
+            if(TARGET ${_rewrite_t})
+                add_custom_command(TARGET ${_rewrite_t} POST_BUILD
+                    COMMAND /bin/bash
+                        "${CSOUND_VST3_SOURCE_DIR}/cmake/rewrite-csound-macos-dylib-ref.bash"
+                        "$<TARGET_FILE:${_rewrite_t}>"
+                    COMMENT "Rewrite CsoundLib64 dependency to @rpath for system-installed Csound 7"
                     VERBATIM
                 )
             endif()
