@@ -214,6 +214,25 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf csound-build /c/csound-install
+          # Csound CMakeLists uses Debian-style MinGW paths; MSYS2 stores these DLLs under /mingw64/bin.
+          mingw_gcc_ver="$(basename "$(ls -d /mingw64/lib/gcc/x86_64-w64-mingw32/* 2>/dev/null | head -1)")"
+          if [[ -n "${mingw_gcc_ver}" ]]
+          then
+            posix_dir="/usr/lib/gcc/x86_64-w64-mingw32/${mingw_gcc_ver}-posix"
+            mkdir -p "${posix_dir}"
+            for dll in libstdc++-6.dll libgcc_s_seh-1.dll
+            do
+              if [[ -f "/mingw64/bin/${dll}" ]]
+              then
+                cp "/mingw64/bin/${dll}" "${posix_dir}/"
+              fi
+            done
+          fi
+          mkdir -p /usr/x86_64-w64-mingw32/lib
+          if [[ -f /mingw64/bin/libwinpthread-1.dll ]]
+          then
+            cp /mingw64/bin/libwinpthread-1.dll /usr/x86_64-w64-mingw32/lib/
+          fi
           cmake -S csound-source -B csound-build -G Ninja \
             -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
             -DCMAKE_INSTALL_PREFIX=/c/csound-install \
@@ -240,11 +259,12 @@ jobs:
           CSOUND_ROOT: ${{ matrix.platform.csound_install }}
           CMAKE_PREFIX_PATH: ${{ matrix.platform.csound_install }}
           CMAKE_FRAMEWORK_PATH: ${{ matrix.platform.csound_install }}/Library/Frameworks;${{ matrix.platform.csound_install }}/Frameworks
-          PATH: ${{ matrix.platform.csound_install }}/bin:/usr/local/bin:/opt/homebrew/bin:${{ env.PATH }}
-          DYLD_LIBRARY_PATH: ${{ matrix.platform.csound_install }}/lib:${{ env.DYLD_LIBRARY_PATH }}
-          DYLD_FRAMEWORK_PATH: ${{ matrix.platform.csound_install }}/Library/Frameworks:${{ matrix.platform.csound_install }}/Frameworks:${{ env.DYLD_FRAMEWORK_PATH }}
         run: |
           set -euo pipefail
+          # Prepend Csound tools without replacing PATH (${{ env.PATH }} is empty in workflow expressions).
+          export PATH="${{ matrix.platform.csound_install }}/bin:/usr/local/bin:/opt/homebrew/bin:${PATH}"
+          export DYLD_LIBRARY_PATH="${{ matrix.platform.csound_install }}/lib:${DYLD_LIBRARY_PATH:-}"
+          export DYLD_FRAMEWORK_PATH="${{ matrix.platform.csound_install }}/Library/Frameworks:${{ matrix.platform.csound_install }}/Frameworks:${DYLD_FRAMEWORK_PATH:-}"
           rm -rf "${{ matrix.platform.build_dir }}" dist
           cmake -S CsoundVST3 -B "${{ matrix.platform.build_dir }}" -G Ninja \
             -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
@@ -279,11 +299,11 @@ jobs:
         env:
           CSOUND_ROOT: ${{ matrix.platform.csound_install }}
           CMAKE_PREFIX_PATH: ${{ matrix.platform.csound_install }}
-          PKG_CONFIG_PATH: ${{ matrix.platform.csound_install }}/lib/pkgconfig:${{ matrix.platform.csound_install }}/lib64/pkgconfig:${{ env.PKG_CONFIG_PATH }}
-          LD_LIBRARY_PATH: ${{ matrix.platform.csound_install }}/lib:${{ matrix.platform.csound_install }}/lib64:${{ env.LD_LIBRARY_PATH }}
-          PATH: ${{ matrix.platform.csound_install }}/bin:${{ env.PATH }}
         run: |
           set -euo pipefail
+          export PATH="${{ matrix.platform.csound_install }}/bin:${PATH}"
+          export PKG_CONFIG_PATH="${{ matrix.platform.csound_install }}/lib/pkgconfig:${{ matrix.platform.csound_install }}/lib64/pkgconfig:${PKG_CONFIG_PATH:-}"
+          export LD_LIBRARY_PATH="${{ matrix.platform.csound_install }}/lib:${{ matrix.platform.csound_install }}/lib64:${LD_LIBRARY_PATH:-}"
           rm -rf "${{ matrix.platform.build_dir }}" dist
           cmake -S CsoundVST3 -B "${{ matrix.platform.build_dir }}" -G Ninja \
             -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
@@ -301,9 +321,9 @@ jobs:
           CSOUND_ROOT: C:/csound-install
           CMAKE_PREFIX_PATH: C:/csound-install
           PKG_CONFIG_PATH: /c/csound-install/lib/pkgconfig
-          PATH: /c/csound-install/bin:/mingw64/bin:/usr/bin:${{ env.PATH }}
         run: |
           set -euo pipefail
+          export PATH="/c/csound-install/bin:/mingw64/bin:/usr/bin:${PATH}"
           rm -rf "${{ matrix.platform.build_dir }}" dist
           cmake -S CsoundVST3 -B "${{ matrix.platform.build_dir }}" -G Ninja \
             -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
