@@ -71,7 +71,7 @@ rule COPY_OSX_CONTENT_DIR
 
 rule CXX_EXECUTABLE_LINKER__CsoundVST3_Standalone_RelWithDebInfo
   command = $PRE_LINK && /usr/bin/c++ $FLAGS $LINK_FLAGS $in -o $TARGET_FILE $LINK_PATH $LINK_LIBRARIES && $POST_BUILD
-  description = Linking CXX executable $TARGET_FILE
+  description = Linking CXX executable $TARGET_FILE; Embedding CsoundLib64.framework into CsoundVST3_Standalone
   restat = $RESTAT
 
 
@@ -90,7 +90,7 @@ rule CXX_COMPILER__CsoundVST3_AU_unscanned_RelWithDebInfo
 
 rule CXX_MODULE_LIBRARY_LINKER__CsoundVST3_AU_RelWithDebInfo
   command = $PRE_LINK && /usr/bin/c++ $LANGUAGE_COMPILE_FLAGS $ARCH_FLAGS $LINK_FLAGS -o $TARGET_FILE $in $LINK_PATH $LINK_LIBRARIES && $POST_BUILD
-  description = Linking CXX CFBundle shared module $TARGET_FILE
+  description = Linking CXX CFBundle shared module $TARGET_FILE; Embedding CsoundLib64.framework into CsoundVST3_AU
   restat = $RESTAT
 
 
@@ -109,7 +109,7 @@ rule CXX_COMPILER__CsoundVST3_VST3_unscanned_RelWithDebInfo
 
 rule CXX_MODULE_LIBRARY_LINKER__CsoundVST3_VST3_RelWithDebInfo
   command = $PRE_LINK && /usr/bin/c++ $LANGUAGE_COMPILE_FLAGS $ARCH_FLAGS $LINK_FLAGS -o $TARGET_FILE $in $LINK_PATH $LINK_LIBRARIES && $POST_BUILD
-  description = Linking CXX CFBundle shared module $TARGET_FILE
+  description = Linking CXX CFBundle shared module $TARGET_FILE; Embedding CsoundLib64.framework into CsoundVST3_VST3
   restat = $RESTAT
 
 
