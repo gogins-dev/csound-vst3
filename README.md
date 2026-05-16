@@ -68,6 +68,20 @@ directory. For example, on macOS, that would normally end up as
 To use the standalone version of CsoundVST3, copy CsoundVST3.app to your 
 computer's Applications folder.
 
+## Testing
+
+To validate your build or installation on macOS, run CsoundVST3 as a plugin in 
+your digital audio workstation. For example, on macOS with Reaper:
+
+ 1. Install Csound 7.
+ 2. Install Reaper.
+ 3. Open Reaper, and execute the _Track_ menu, _Insert Virtual Instumen on New Track_ command. Select CsoundVST3 as the virtual instrument.
+ 4. Use the track's _FX_ button to open CsoundVST3's editor. 
+ 5. Use CsoundVST3's _Open..._ button to load [https://github.com/gogins-dev/csound-vst3/blob/main/CsoundVST3/Resources/Examples/CsoundVST3.csd], or paste the raw file into the editor.
+ 6. Click on the _Save_ button.
+ 7. Click on the _Play_ button to recompile the Csound code and begin to run.
+ 8. Create a new MIDI item on the track, and open its editor. Write some notes, or just click on the MIDI item keyboard. You should hear CsoundVST playing the notes. 
+
 ## Usage
 
  1. Write a Csound .csd file that optionally outputs stereo audio, optionally 
