@@ -40,7 +40,7 @@ fi
 rm -rf "${build_dir}" "${install_dir}"
 cmake -S "${source_dir}" -B "${build_dir}" -G Ninja \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-    -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 \
+    -DCMAKE_OSX_DEPLOYMENT_TARGET=12 \
     -DCMAKE_OSX_ARCHITECTURES="${CMAKE_OSX_ARCHITECTURES:-arm64}" \
     -DCMAKE_INSTALL_PREFIX="${install_dir}" \
     -DCMAKE_PREFIX_PATH="/Library;/Library/Frameworks;/opt/homebrew;/usr/local" \

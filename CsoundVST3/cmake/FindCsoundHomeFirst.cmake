@@ -2,13 +2,20 @@
 #
 # Home-first Csound discovery.
 #
-# Search order on macOS:
-#   1. $HOME/Library/Frameworks
+# Search order on macOS (framework / headers):
+#   1. $HOME/Library/Frameworks   (optional local build)
 #   2. $HOME
-#   3. /Library/Frameworks
-#   4. /Applications/Csound
+#   3. /Library/Frameworks        (standard installer)
+#   4. /Applications/Csound       (standard installer)
 #   5. /usr/local
 #   6. /opt/homebrew
+#
+# Executable search on macOS prefers a CLI in $HOME/bin, /usr/local/bin, or
+# /opt/homebrew/bin, then falls back to /Applications/Csound/csound from the
+# installer. That installer frontend is a valid CSOUND_EXECUTABLE, but must
+# not be invoked as `csound --version` during configure (it can hang forever
+# when CMake captures stdin/stdout). Version comes from the framework
+# version.h instead.
 #
 # Search order on Windows:
 #   1. CSOUND_ROOT_HINT (if set)
@@ -105,11 +112,43 @@ endif()
 # ------------------------------------------------------------------------------
 # Executable
 # ------------------------------------------------------------------------------
+# Do not pass $HOME or /Applications/Csound as a generic PATHS root with
+# PATH_SUFFIXES bin: CMake also searches the root itself, so it can pick
+# /Applications/Csound/csound before /usr/local/bin/csound.
+
+set(_csound_exe_paths)
+if(DEFINED CSOUND_ROOT_HINT AND NOT CSOUND_ROOT_HINT STREQUAL "")
+    list(APPEND _csound_exe_paths
+        "${CSOUND_ROOT_HINT}/bin"
+        "${CSOUND_ROOT_HINT}"
+    )
+endif()
+if(APPLE)
+    list(APPEND _csound_exe_paths
+        "${_csound_home}/bin"
+        "/usr/local/bin"
+        "/opt/homebrew/bin"
+        "/Applications/Csound"
+    )
+elseif(WIN32)
+    list(APPEND _csound_exe_paths
+        "${_csound_home}/bin"
+        "C:/Program Files/Csound/bin"
+        "C:/Program Files (x86)/Csound/bin"
+    )
+else()
+    list(APPEND _csound_exe_paths
+        "${_csound_home}/bin"
+        "/usr/local/bin"
+        "/opt/homebrew/bin"
+        "/usr/bin"
+    )
+endif()
+list(REMOVE_DUPLICATES _csound_exe_paths)
 
 find_program(CSOUND_EXECUTABLE
     NAMES csound csound64
-    PATHS ${_csound_search_roots}
-    PATH_SUFFIXES bin
+    PATHS ${_csound_exe_paths}
     NO_DEFAULT_PATH
 )
 
@@ -212,26 +251,6 @@ if(NOT CSOUND_VERSION_MAJOR)
     endif()
 endif()
 
-if(CSOUND_EXECUTABLE AND NOT CSOUND_VERSION_MAJOR)
-    execute_process(
-        COMMAND "${CSOUND_EXECUTABLE}" --version
-        OUTPUT_VARIABLE _csound_version_stdout
-        ERROR_VARIABLE _csound_version_stderr
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        ERROR_STRIP_TRAILING_WHITESPACE
-    )
-
-    set(_csound_version_text "${_csound_version_stdout}\n${_csound_version_stderr}")
-
-    string(REGEX MATCH "Csound version[ ]+([0-9]+)\\.([0-9]+)" _csound_version_match "${_csound_version_text}")
-
-    if(_csound_version_match)
-        set(CSOUND_VERSION "${CMAKE_MATCH_1}.${CMAKE_MATCH_2}")
-        set(CSOUND_VERSION_MAJOR "${CMAKE_MATCH_1}")
-        set(CSOUND_VERSION_MINOR "${CMAKE_MATCH_2}")
-    endif()
-endif()
-
 if(CSOUND_LIBRARY AND NOT CSOUND_VERSION_MAJOR)
     if(CSOUND_LIBRARY MATCHES "/Versions/([0-9]+)\\.([0-9]+)/")
         set(CSOUND_VERSION_MAJOR "${CMAKE_MATCH_1}")
@@ -265,6 +284,37 @@ if(CSOUND_INCLUDE_DIR AND NOT CSOUND_VERSION_MAJOR)
         if(CSOUND_VERSION_MAJOR)
             set(CSOUND_VERSION "${CSOUND_VERSION_MAJOR}.${CSOUND_VERSION_MINOR}")
         endif()
+    endif()
+endif()
+
+# Last resort only, and never the macOS installer frontend: that binary can
+# hang forever on --version when CMake pipes stdin/stdout.
+if(CSOUND_EXECUTABLE AND NOT CSOUND_VERSION_MAJOR
+        AND NOT CSOUND_EXECUTABLE MATCHES "/Applications/Csound/")
+    if(WIN32)
+        set(_csound_devnull "NUL")
+    else()
+        set(_csound_devnull "/dev/null")
+    endif()
+    execute_process(
+        COMMAND "${CSOUND_EXECUTABLE}" --version
+        INPUT_FILE "${_csound_devnull}"
+        OUTPUT_VARIABLE _csound_version_stdout
+        ERROR_VARIABLE _csound_version_stderr
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_STRIP_TRAILING_WHITESPACE
+        TIMEOUT 8
+        RESULT_VARIABLE _csound_version_result
+    )
+
+    set(_csound_version_text "${_csound_version_stdout}\n${_csound_version_stderr}")
+
+    string(REGEX MATCH "Csound version[ ]+([0-9]+)\\.([0-9]+)" _csound_version_match "${_csound_version_text}")
+
+    if(_csound_version_match)
+        set(CSOUND_VERSION "${CMAKE_MATCH_1}.${CMAKE_MATCH_2}")
+        set(CSOUND_VERSION_MAJOR "${CMAKE_MATCH_1}")
+        set(CSOUND_VERSION_MINOR "${CMAKE_MATCH_2}")
     endif()
 endif()
 
