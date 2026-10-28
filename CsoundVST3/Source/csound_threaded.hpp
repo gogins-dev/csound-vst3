@@ -43,9 +43,6 @@
 %}
 #endif
 #include "csound.hpp"
-extern "C" {
-  void csoundSetHostImplementedAudioIO(CSOUND *csound, int32_t state, int32_t bufSize);
-}
 #include <atomic>
 #include <cstdarg>
 #include <cstdint>
@@ -485,12 +482,13 @@ public:
     virtual void SetHostImplementedAudioIO(int state, int bufSize = 0)
     {
 #if defined(CSOUND_VERSION_MAJOR) && CSOUND_VERSION_MAJOR >= 7
-        // csoundSetHostAudioIO() alone does not set hostRequestedBufferSize;
-        // the legacy API still exists and is required for host spout I/O.
+        // Csound 7 no longer exports csoundSetHostImplementedAudioIO.
+        // Host I/O is selected with csoundSetHostAudioIO; the host reads
+        // spin/spout. bufSize is ignored.
+        (void)bufSize;
         if (state != 0)
         {
-            int32_t bs = (bufSize > 0) ? (int32_t)bufSize : 128;
-            csoundSetHostImplementedAudioIO(csound, 1, bs);
+            csoundSetHostAudioIO(csound);
         }
 #else
         Csound::SetHostImplementedAudioIO(state);
