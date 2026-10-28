@@ -44,7 +44,7 @@ cmake -S "${source_dir}" -B "${build_dir}" -G Ninja \
     -DCMAKE_OSX_ARCHITECTURES="${CMAKE_OSX_ARCHITECTURES:-arm64}" \
     -DCMAKE_INSTALL_PREFIX="${install_dir}" \
     -DCMAKE_PREFIX_PATH="/Library;/Library/Frameworks;/opt/homebrew;/usr/local" \
-    -DCMAKE_FRAMEWORK_PATH="/Library/Frameworks;$HOME/Library/Frameworks" \
+    -DCMAKE_FRAMEWORK_PATH="/Library/Frameworks" \
     -DCSOUND_AC_ENABLE_CODESIGN=ON \
     -DCSOUND_AC_ENABLE_NOTARIZATION=OFF \
     ${cmake_args[@]+"${cmake_args[@]}"}

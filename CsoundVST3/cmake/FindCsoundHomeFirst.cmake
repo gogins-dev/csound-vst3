@@ -1,21 +1,20 @@
 # FindCsoundHomeFirst.cmake
 #
-# Home-first Csound discovery.
+# Csound discovery. The macOS installer locations come first.
 #
 # Search order on macOS (framework / headers):
-#   1. $HOME/Library/Frameworks   (optional local build)
-#   2. $HOME
-#   3. /Library/Frameworks        (standard installer)
-#   4. /Applications/Csound       (standard installer)
-#   5. /usr/local
-#   6. /opt/homebrew
+#   1. /Library/Frameworks        (installer and local install)
+#   2. /Applications/Csound       (Csound.app installer)
+#   3. /usr/local
+#   4. /opt/homebrew
+#   5. $HOME/Library/Frameworks   (older local builds)
+#   6. $HOME
 #
-# Executable search on macOS prefers a CLI in $HOME/bin, /usr/local/bin, or
-# /opt/homebrew/bin, then falls back to /Applications/Csound/csound from the
-# installer. That installer frontend is a valid CSOUND_EXECUTABLE, but must
-# not be invoked as `csound --version` during configure (it can hang forever
-# when CMake captures stdin/stdout). Version comes from the framework
-# version.h instead.
+# Executable search on macOS prefers /usr/local/bin, then Homebrew, then
+# $HOME/bin, then /Applications/Csound/csound from the installer. That
+# installer frontend is a valid CSOUND_EXECUTABLE, but must not be invoked
+# as `csound --version` during configure (it can hang forever when CMake
+# captures stdin/stdout). Version comes from the framework version.h instead.
 #
 # Search order on Windows:
 #   1. CSOUND_ROOT_HINT (if set)
@@ -66,12 +65,12 @@ endif()
 
 if(APPLE)
     list(APPEND _csound_search_roots
-        "${_csound_home}/Library/Frameworks"
-        "${_csound_home}"
         "/Library/Frameworks"
         "/Applications/Csound"
         "/usr/local"
         "/opt/homebrew"
+        "${_csound_home}/Library/Frameworks"
+        "${_csound_home}"
     )
 elseif(WIN32)
     list(APPEND _csound_search_roots
@@ -90,10 +89,9 @@ endif()
 
 list(REMOVE_DUPLICATES _csound_search_roots)
 
-# Help ordinary CMake searches prefer home first.
+# Help ordinary CMake searches prefer the installer framework location.
 if(APPLE)
     list(PREPEND CMAKE_FRAMEWORK_PATH
-        "${_csound_home}/Library/Frameworks"
         "/Library/Frameworks"
         "/Applications/Csound"
     )
@@ -125,9 +123,9 @@ if(DEFINED CSOUND_ROOT_HINT AND NOT CSOUND_ROOT_HINT STREQUAL "")
 endif()
 if(APPLE)
     list(APPEND _csound_exe_paths
-        "${_csound_home}/bin"
         "/usr/local/bin"
         "/opt/homebrew/bin"
+        "${_csound_home}/bin"
         "/Applications/Csound"
     )
 elseif(WIN32)
